@@ -1,6 +1,5 @@
 import crypto from "node:crypto"
 import { Router } from "express"
-import Razorpay from "razorpay"
 import { z } from "zod"
 import { config } from "../config.js"
 import { prisma } from "../db.js"
@@ -20,10 +19,10 @@ const createOrderSchema = z.object({
   receipt: z.string().trim().min(1).max(40).optional(),
 })
 
-const razorpayClient = () => {
+const razorpayCredentials = () => {
   if (!config.razorpayKeyId || !config.razorpayKeySecret)
     throw new Error("Razorpay credentials are not configured")
-  return new Razorpay({ key_id: config.razorpayKeyId, key_secret: config.razorpayKeySecret })
+  return `Basic ${btoa(`${config.razorpayKeyId}:${config.razorpayKeySecret}`)}`
 }
 
 const getRazorpayError = (value: unknown) => {
@@ -37,6 +36,29 @@ const getRazorpayError = (value: unknown) => {
     code: error.error?.code,
     description: error.error?.description,
   }
+}
+
+const razorpayRequest = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  const response = await fetch(`https://api.razorpay.com/v1${path}`, {
+    ...init,
+    headers: {
+      Authorization: razorpayCredentials(),
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  })
+  const result = await response.json().catch(() => null)
+  if (!response.ok) {
+    const providerBody = result && typeof result === "object" ? result : {}
+    const providerError = getRazorpayError({ ...providerBody, statusCode: response.status })
+    throw Object.assign(new Error(providerError?.description ?? "Razorpay request failed"), {
+      statusCode: response.status,
+      error: providerError
+        ? { code: providerError.code, description: providerError.description }
+        : undefined,
+    })
+  }
+  return result as T
 }
 
 paymentsRouter.post("/create-order", async (request: AuthRequest, response) => {
@@ -54,16 +76,21 @@ paymentsRouter.post("/create-order", async (request: AuthRequest, response) => {
       response.status(503).json({ error: paymentSetupMessage })
       return
     }
-    const razorpay = razorpayClient()
-    const order = await razorpay.orders.create({
-      amount: parsed.data.amount,
-      currency: parsed.data.currency,
-      // Razorpay receipts must be unique and no longer than 40 characters.
-      receipt:
-        parsed.data.receipt ??
-        `p_${Date.now().toString(36).slice(-8)}_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
-      notes: { userId: request.userId ?? "" },
-    })
+    const order = await razorpayRequest<{ id: string; amount: number; currency: string }>(
+      "/orders",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          amount: parsed.data.amount,
+          currency: parsed.data.currency,
+          // Razorpay receipts must be unique and no longer than 40 characters.
+          receipt:
+            parsed.data.receipt ??
+            `p_${Date.now().toString(36).slice(-8)}_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
+          notes: { userId: request.userId ?? "" },
+        }),
+      },
+    )
     response.status(201).json({
       key_id: config.razorpayKeyId,
       order_id: order.id,
@@ -122,8 +149,11 @@ paymentsRouter.post("/verify-payment", async (request: AuthRequest, response) =>
       response.status(400).json({ error: "Payment signature verification failed" })
       return
     }
-    const razorpay = razorpayClient()
-    const order = await razorpay.orders.fetch(orderId)
+    const order = await razorpayRequest<{
+      amount: number
+      currency: string
+      notes?: { userId?: string }
+    }>(`/orders/${encodeURIComponent(orderId)}`)
     if (
       order.amount !== 221700 ||
       order.currency !== "INR" ||
