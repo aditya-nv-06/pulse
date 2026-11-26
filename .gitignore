@@ -1,0 +1,26 @@
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies and generated build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+coverage/
+
+# Local databases and logs
+*.db
+*.db-journal
+*.log
+npm-debug.log*
+
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
