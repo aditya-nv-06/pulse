@@ -104,6 +104,7 @@ const Blueprint = () => {
   const [message, setMessage] = useState("")
   const canvasRef = useRef<HTMLDivElement>(null)
   const nodesRef = useRef(nodes)
+  const needsCentering = useRef(false)
   const panStart = useRef<Point>({ x: 0, y: 0 })
   const panOrigin = useRef<Point>({ x: 0, y: 0 })
 
@@ -115,6 +116,7 @@ const Blueprint = () => {
       const isLegacyLayout = Boolean(
         result?.version && !result.version.note?.toLowerCase().includes("vertical"),
       )
+      needsCentering.current = true
       setNodes(fitNodesToCanvas(result?.graph.nodes ?? [], isLegacyLayout))
       setEdges(result?.graph.edges ?? [])
       setSelectedId(null)
@@ -150,6 +152,24 @@ const Blueprint = () => {
   useEffect(() => {
     nodesRef.current = nodes
   }, [nodes])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (fetching || !needsCentering.current || !nodes.length || !canvas) return
+
+    const minX = Math.min(...nodes.map((node) => node.position?.x ?? 0))
+    const maxX = Math.max(...nodes.map((node) => node.position?.x ?? 0))
+    const minY = Math.min(...nodes.map((node) => node.position?.y ?? 0))
+    const maxY = Math.max(...nodes.map((node) => node.position?.y ?? 0))
+    const diagramCenterX = (minX + maxX + cardWidth) / 2
+    const diagramCenterY = (minY + maxY + cardHeight) / 2
+
+    setPan({
+      x: canvas.clientWidth / 2 - 24 - diagramCenterX * zoom,
+      y: canvas.clientHeight / 2 - 24 - diagramCenterY * zoom,
+    })
+    needsCentering.current = false
+  }, [fetching, nodes, zoom])
 
   useEffect(() => {
     if (!workspace) return
@@ -213,6 +233,7 @@ const Blueprint = () => {
     setMessage("")
     try {
       const result = await api.generateBlueprint(workspace.slug, planToPayload(productPlan.trim()))
+      needsCentering.current = true
       setNodes(fitNodesToCanvas(result.graph.nodes))
       setEdges(result.graph.edges)
       setSelectedId(null)

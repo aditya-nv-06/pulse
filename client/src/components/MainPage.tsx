@@ -1,4 +1,4 @@
-import PublicBoardNav from "./PublicBoardNav"
+import LandingNav from "./LandingNav"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { ReactNode } from "react"
@@ -93,7 +93,7 @@ const MainPage = () => {
   }
   return (
     <>
-      <PublicBoardNav onStartFree={() => void startTrial()} starting={trialLoading} />
+      <LandingNav onStartFree={() => void startTrial()} starting={trialLoading} />
       <main>
         <section className="relative isolate overflow-hidden px-5 pb-24 pt-20 lg:px-8 lg:pb-32 lg:pt-28">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
