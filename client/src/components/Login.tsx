@@ -8,18 +8,22 @@ const Login = () => {
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+  const [isSending, setIsSending] = useState(false)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setError("")
     setMessage("")
+    setIsSending(true)
     try {
-      await auth.requestLink(email)
+      const result = await auth.requestLink(email)
       setMessage(
-        "Check your inbox for the Pulse sign-in link. It expires in 15 minutes and can only be used once.",
+        `${result.message} Email acceptance does not confirm inbox delivery. The link expires in 15 minutes and can only be used once.`,
       )
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in")
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -47,12 +51,23 @@ const Login = () => {
             placeholder="you@company.com"
             className="w-full rounded-xl border border-neutral-200 px-4 py-3 outline-none focus:border-[#625BF6]"
           />
-          <button className="w-full rounded-xl bg-[#625BF6] px-4 py-3 font-semibold text-white">
-            Send magic link
+          <button
+            disabled={isSending}
+            className="w-full rounded-xl bg-[#625BF6] px-4 py-3 font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+          >
+            {isSending ? "Sending…" : "Send magic link"}
           </button>
         </form>
-        {message && <p className="mt-4 text-sm text-green-700">{message}</p>}
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {message && (
+          <p role="status" className="mt-4 text-sm text-green-700">
+            {message}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-red-600">
+            {error}
+          </p>
+        )}
       </div>
     </main>
   )

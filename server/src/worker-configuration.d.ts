@@ -6,9 +6,9 @@ interface __BaseEnv_Env {
   NODE_ENV: "production"
   CLIENT_ORIGIN: "https://pulse.feedbackloop.workers.dev"
   APP_URL: "https://pulse.feedbackloop.workers.dev"
-  RESEND_FROM: "Pulse <adityanv4@gmail.com>"
+  BREVO_SENDER_EMAIL: "adityanv4@gmail.com"
   DATABASE_URL: string
-  RESEND_API_KEY: string
+  BREVO_API_KEY: string
 }
 declare namespace Cloudflare {
   interface GlobalProps {
@@ -24,7 +24,12 @@ declare namespace NodeJS {
   interface ProcessEnv extends StringifyValues<
     Pick<
       Cloudflare.Env,
-      "NODE_ENV" | "CLIENT_ORIGIN" | "APP_URL" | "RESEND_FROM" | "DATABASE_URL" | "RESEND_API_KEY"
+      | "NODE_ENV"
+      | "CLIENT_ORIGIN"
+      | "APP_URL"
+      | "BREVO_SENDER_EMAIL"
+      | "DATABASE_URL"
+      | "BREVO_API_KEY"
     >
   > {}
 }

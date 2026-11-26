@@ -18,7 +18,8 @@ app.get("/api/health", async (_request, response) => {
   try {
     await prisma.$queryRaw`SELECT 1`
     response.json({ ok: true })
-  } catch {
+  } catch (error) {
+    console.error("Database health check failed", error)
     response.status(503).json({ ok: false })
   }
 })

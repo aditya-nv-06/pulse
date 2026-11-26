@@ -11,8 +11,8 @@ export const config = {
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
   appUrl: process.env.APP_URL ?? "http://localhost:5173",
   isProduction: process.env.NODE_ENV === "production",
-  resendApiKey: process.env.RESEND_API_KEY ?? "",
-  resendFrom: process.env.RESEND_FROM ?? "Pulse <onboarding@resend.dev>",
+  brevoApiKey: process.env.BREVO_API_KEY ?? "",
+  brevoSenderEmail: process.env.BREVO_SENDER_EMAIL ?? "",
   razorpayKeyId: process.env.RAZORPAY_KEY_ID ?? "",
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET ?? "",
   razorpayPlanId: process.env.RAZORPAY_PLAN_ID ?? "",
@@ -48,14 +48,12 @@ if (config.isProduction) {
       throw new Error(`${name} must use a public HTTPS URL in production`)
     }
   }
-  if (!config.resendApiKey)
+  if (!config.brevoApiKey) {
     throw new Error(
-      "RESEND_API_KEY is required in production so sign-in links are delivered by email",
+      "BREVO_API_KEY is required in production so sign-in links are delivered by email",
     )
-  if (
-    config.resendFrom.includes("onboarding@resend.dev") ||
-    config.resendFrom.startsWith("REPLACE_WITH_")
-  ) {
-    throw new Error("Set RESEND_FROM to a verified sender domain in production")
+  }
+  if (!config.brevoSenderEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.brevoSenderEmail)) {
+    throw new Error("BREVO_SENDER_EMAIL must be a valid sender address configured in Brevo")
   }
 }

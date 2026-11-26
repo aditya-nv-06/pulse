@@ -48,27 +48,48 @@ authRouter.post("/request-link", async (request, response) => {
     const { email } = parsed.data
     const ip = request.ip ?? "unknown"
     if (!allowedByRate(requestsByEmail, email) || !allowedByRate(requestsByIp, ip)) {
-      response.json({ message: "Check your email for a sign-in link." })
+      response
+        .status(429)
+        .json({ error: "Too many sign-in requests. Please try again in an hour." })
       return
     }
 
     const now = new Date()
-    const activeToken = await prisma.magicLinkToken.findFirst({
-      where: { email, usedAt: null, expiresAt: { gt: now } },
-    })
-    if (!activeToken) {
-      const rawToken = crypto.randomBytes(32).toString("hex")
-      await prisma.magicLinkToken.create({
+    const rawToken = crypto.randomBytes(32).toString("hex")
+    const tokenHash = hashToken(rawToken)
+    await prisma.$transaction(async (transaction) => {
+      await transaction.magicLinkToken.updateMany({
+        where: { email, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      })
+      await transaction.magicLinkToken.create({
         data: {
           email,
-          tokenHash: hashToken(rawToken),
+          tokenHash,
           expiresAt: new Date(now.getTime() + 15 * 60 * 1000),
           returnTo: safeReturnTo(parsed.data.returnTo),
         },
       })
-      await sendMagicLink(email, rawToken, safeReturnTo(parsed.data.returnTo))
+    })
+    let emailAccepted: boolean
+    try {
+      emailAccepted = await sendMagicLink(email, rawToken, safeReturnTo(parsed.data.returnTo))
+    } catch (error) {
+      await prisma.magicLinkToken.updateMany({
+        where: { tokenHash, usedAt: null },
+        data: { usedAt: new Date() },
+      })
+      console.error("Brevo did not accept the sign-in email", error)
+      response.status(502).json({
+        error: "We couldn't send your sign-in email. Please check the address and try again later.",
+      })
+      return
     }
-    response.json({ message: "Check your email for a sign-in link." })
+    response.status(emailAccepted ? 202 : 200).json({
+      message: emailAccepted
+        ? "Brevo accepted your sign-in email for delivery. Check your inbox, spam, and promotions folders."
+        : "Development mode: the sign-in link was written to the server console.",
+    })
   } catch (error) {
     handleError(error, response)
   }

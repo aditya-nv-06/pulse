@@ -12,7 +12,7 @@ Pulse is a product feedback platform with public feedback boards and a workspace
 
 - Node.js 22 or newer and npm.
 - PostgreSQL for the API.
-- Resend credentials for email sign-in links. AI and Razorpay integrations are optional.
+- Brevo credentials for email sign-in links. AI and Razorpay integrations are optional.
 
 ## Local development
 
@@ -23,7 +23,7 @@ Pulse is a product feedback platform with public feedback boards and a workspace
    cd ../client && npm ci && cp .env.example .env
    ```
 
-2. Set `DATABASE_URL` in `server/.env` to your local PostgreSQL database. `CLIENT_ORIGIN` and `APP_URL` should point to `http://localhost:5173` for local development. To receive magic-link emails locally, set `RESEND_API_KEY` and a valid `RESEND_FROM` sender.
+2. Set `DATABASE_URL` in `server/.env` to your local PostgreSQL database. `CLIENT_ORIGIN` and `APP_URL` should point to `http://localhost:5173` for local development. To send magic-link emails locally, set `BREVO_API_KEY` and a verified `BREVO_SENDER_EMAIL` in Brevo.
 
 3. Create or update the local schema and generate Prisma Client:
 
@@ -53,12 +53,12 @@ For a local Wrangler deployment, create the ignored root file `.wrangler-secrets
 
 ```dotenv
 DATABASE_URL="your Neon connection string"
-RESEND_API_KEY="your Resend API key"
+BREVO_API_KEY="your Brevo API key"
 ```
 
 Then run `npm run cf:deploy` from `server/`. This invokes Wrangler with `--secrets-file ../.wrangler-secrets`. Keep this file out of Git.
 
-For Cloudflare Workers Builds, add `DATABASE_URL` and `RESEND_API_KEY` as **build secrets** under the Worker’s **Settings → Builds → Build variables and secrets**. These are separate from the Worker’s runtime Variables and Secrets. Set the deploy command to:
+For Cloudflare Workers Builds, add `DATABASE_URL` and `BREVO_API_KEY` as **build secrets** under the Worker’s **Settings → Builds → Build variables and secrets**. These are separate from the Worker’s runtime Variables and Secrets. Set the deploy command to:
 
 ```sh
 bash scripts/cloudflare-deploy.sh

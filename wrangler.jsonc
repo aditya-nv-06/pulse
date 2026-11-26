@@ -8,10 +8,10 @@
     "NODE_ENV": "production",
     "CLIENT_ORIGIN": "https://pulse.feedbackloop.workers.dev",
     "APP_URL": "https://pulse.feedbackloop.workers.dev",
-    "RESEND_FROM": "Pulse <adityanv4@gmail.com>",
+    "BREVO_SENDER_EMAIL": "adityanv4@gmail.com",
   },
   "secrets": {
-    "required": ["DATABASE_URL", "RESEND_API_KEY"],
+    "required": ["DATABASE_URL", "BREVO_API_KEY"],
   },
   "assets": {
     "directory": "./client/dist",

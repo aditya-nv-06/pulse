@@ -22,15 +22,11 @@ if (config.vars?.CLIENT_ORIGIN !== config.vars?.APP_URL) {
   )
 }
 
-if (
-  !config.vars?.RESEND_FROM ||
-  config.vars.RESEND_FROM.includes("onboarding@resend.dev") ||
-  config.vars.RESEND_FROM.startsWith("REPLACE_WITH_")
-) {
-  errors.push("RESEND_FROM must be a sender address on a verified Resend domain")
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.vars?.BREVO_SENDER_EMAIL ?? "")) {
+  errors.push("BREVO_SENDER_EMAIL must be a valid sender address configured in Brevo")
 }
 
-for (const secretName of ["DATABASE_URL", "RESEND_API_KEY"]) {
+for (const secretName of ["DATABASE_URL", "BREVO_API_KEY"]) {
   if (!config.secrets?.required?.includes(secretName)) {
     errors.push(`Declare ${secretName} in secrets.required in wrangler.jsonc`)
   }
