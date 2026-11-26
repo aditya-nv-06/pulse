@@ -18,6 +18,8 @@ const windowMs = 60 * 60 * 1000
 const maxRequests = 5
 const maxIpRequests = 20
 const maxIpBuckets = 10_000
+type RequestLinkStage =
+  "validating address" | "checking email domain" | "applying send limits" | "sending sign-in email"
 
 const hashToken = sessionHash
 const sessionCookieOptions = {
@@ -43,6 +45,7 @@ const allowedByRate = (bucket: Map<string, number[]>, key: string) => {
 }
 
 authRouter.post("/request-link", async (request, response) => {
+  let stage: RequestLinkStage = "validating address"
   try {
     const parsed = emailSchema.safeParse(request.body)
     if (!parsed.success) {
@@ -59,6 +62,7 @@ authRouter.post("/request-link", async (request, response) => {
       return
     }
 
+    stage = "checking email domain"
     const domain = email.slice(email.lastIndexOf("@") + 1)
     let domainAcceptsMail: boolean
     try {
@@ -80,8 +84,14 @@ authRouter.post("/request-link", async (request, response) => {
     const now = new Date()
     const rawToken = crypto.randomBytes(32).toString("hex")
     const tokenHash = hashToken(rawToken)
+    stage = "applying send limits"
     const tokenCreated = await prisma.$transaction(async (transaction) => {
-      await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${email}, 0))`
+      await transaction.$queryRaw`
+        WITH email_lock AS MATERIALIZED (
+          SELECT pg_advisory_xact_lock(hashtextextended(${email}, 0))
+        )
+        SELECT 1 AS locked FROM email_lock
+      `
       const recentRequests = await transaction.magicLinkToken.count({
         where: { email, createdAt: { gte: new Date(now.getTime() - windowMs) } },
       })
@@ -108,6 +118,7 @@ authRouter.post("/request-link", async (request, response) => {
       })
       return
     }
+    stage = "sending sign-in email"
     let emailAccepted: boolean
     try {
       emailAccepted = await sendMagicLink(email, rawToken, safeReturnTo(parsed.data.returnTo))
@@ -128,7 +139,11 @@ authRouter.post("/request-link", async (request, response) => {
         : "Development mode: the sign-in link was written to the server console.",
     })
   } catch (error) {
-    handleError(error, response)
+    console.error(`Magic-link request failed while ${stage}`, error)
+    response.status(503).json({
+      code: "SIGN_IN_UNAVAILABLE",
+      error: "Sign-in is temporarily unavailable. Please try again shortly.",
+    })
   }
 })
 
