@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { api, ApiError, type MeetingRequestStatus, type Post, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
+import LoadingState from "./LoadingState"
 import Pagination from "./Pagination"
 import { pageItems } from "./pagination"
 
@@ -33,6 +34,7 @@ const MeetingsDashboard = () => {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<RequestFilter>("REQUESTED")
   const [page, setPage] = useState(1)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -43,6 +45,7 @@ const MeetingsDashboard = () => {
   const loadWorkspace = useCallback(
     async (selected: Workspace) => {
       activeSlug.current = selected.slug
+      setLoading(true)
       setWorkspace(selected)
       setError("")
       try {
@@ -61,6 +64,8 @@ const MeetingsDashboard = () => {
           setError(
             loadError instanceof Error ? loadError.message : "Unable to load meeting requests",
           )
+      } finally {
+        if (activeSlug.current === selected.slug) setLoading(false)
       }
     },
     [navigate],
@@ -73,12 +78,16 @@ const MeetingsDashboard = () => {
         .then(async (items) => {
           setWorkspaces(items)
           if (items[0]) await loadWorkspace(items[0])
-          else setError("No workspace is available for this account.")
+          else {
+            setError("No workspace is available for this account.")
+            setLoading(false)
+          }
         })
         .catch((loadError) => {
           if (loadError instanceof ApiError && loadError.message === "Session expired")
             navigate("/login")
           else setError(loadError instanceof Error ? loadError.message : "Unable to load workspace")
+          setLoading(false)
         })
     })
   }, [loadWorkspace, navigate])
@@ -153,10 +162,14 @@ const MeetingsDashboard = () => {
     (request) => filter === "ALL" || (request.meetingRequestStatus ?? "REQUESTED") === filter,
   )
 
+  if (loading) return <LoadingState label="Loading meeting requests…" />
+
   if (!workspace)
     return (
       <main className="grid min-h-screen place-items-center bg-[#FAFAF8] px-6">
-        <p className="font-semibold">{error || "Loading meeting requests…"}</p>
+        <p role="alert" className="font-semibold">
+          {error}
+        </p>
       </main>
     )
 

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { api, type Post, type PostStatus, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
+import LoadingState from "./LoadingState"
 
 const labels: Record<PostStatus, string> = {
   OPEN: "Open",
@@ -81,6 +82,8 @@ const PostDetail = () => {
         replace: true,
       })
   }
+
+  if ((!post || !workspace) && !error) return <LoadingState label="Loading feature request…" />
 
   if (!post || !workspace)
     return (

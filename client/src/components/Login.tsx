@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { auth } from "../api"
 import BrandMark from "./BrandMark"
+import LoadingSpinner from "./LoadingSpinner"
 
 const Login = () => {
   const navigate = useNavigate()
@@ -55,7 +56,14 @@ const Login = () => {
             disabled={isSending}
             className="w-full rounded-xl bg-[#625BF6] px-4 py-3 font-semibold text-white disabled:cursor-wait disabled:opacity-60"
           >
-            {isSending ? "Sending…" : "Send magic link"}
+            {isSending ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <LoadingSpinner className="h-4 w-4" light />
+                Sending…
+              </span>
+            ) : (
+              "Send magic link"
+            )}
           </button>
         </form>
         {message && (

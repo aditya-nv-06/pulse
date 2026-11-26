@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { api, type ChangelogEntry, type Post, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
 import Pagination from "./Pagination"
 import { pageItems } from "./pagination"
+import LoadingState from "./LoadingState"
 
 const PAGE_SIZE = 10
 
@@ -19,15 +20,25 @@ const ChangelogDashboard = () => {
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([])
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(true)
+  const activeSlug = useRef<string | null>(null)
 
   const loadWorkspace = async (selected: Workspace) => {
+    activeSlug.current = selected.slug
+    setLoading(true)
+    setError("")
     setWorkspace(selected)
-    const [board, posts] = await Promise.all([
-      api.getBoard(selected.slug),
-      api.getAdminPosts(selected.slug),
-    ])
-    setEntries(board.changelog)
-    setShippedPosts(posts.filter((post) => post.status === "SHIPPED"))
+    try {
+      const [board, posts] = await Promise.all([
+        api.getBoard(selected.slug),
+        api.getAdminPosts(selected.slug),
+      ])
+      if (activeSlug.current !== selected.slug) return
+      setEntries(board.changelog)
+      setShippedPosts(posts.filter((post) => post.status === "SHIPPED"))
+    } finally {
+      if (activeSlug.current === selected.slug) setLoading(false)
+    }
   }
   useEffect(() => {
     queueMicrotask(() => {
@@ -36,10 +47,15 @@ const ChangelogDashboard = () => {
         .then(async (items) => {
           setWorkspaces(items)
           if (items[0]) await loadWorkspace(items[0])
+          else {
+            setError("No workspace is available for this account.")
+            setLoading(false)
+          }
         })
-        .catch((loadError) =>
-          setError(loadError instanceof Error ? loadError.message : "Unable to load changelog"),
-        )
+        .catch((loadError) => {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load changelog")
+          setLoading(false)
+        })
     })
   }, [navigate])
   const switchWorkspace = (slug: string) => {
@@ -60,12 +76,9 @@ const ChangelogDashboard = () => {
       setError(publishError instanceof Error ? publishError.message : "Unable to publish changelog")
     }
   }
-  if (!workspace)
-    return (
-      <main className="grid min-h-screen place-items-center bg-[#FAFAF8] px-6">
-        <p className="font-semibold">Loading changelog...</p>
-      </main>
-    )
+  if (loading) return <LoadingState label="Loading changelog…" />
+
+  if (!workspace) return <LoadingState label={error} error />
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-neutral-950">
       <FounderNav

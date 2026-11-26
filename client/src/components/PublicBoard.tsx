@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom"
 import PublicBoardNav from "./PublicBoardNav"
 import Pagination from "./Pagination"
 import { pageItems } from "./pagination"
+import LoadingSpinner from "./LoadingSpinner"
 
 const statusLabel = {
   OPEN: "Open",
@@ -30,15 +31,19 @@ const PublicBoard = () => {
   const [description, setDescription] = useState("")
   const [email, setEmail] = useState("")
   const [meetingRequested, setMeetingRequested] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const submitLock = useRef(false)
   const [message, setMessage] = useState("")
 
   const load = async () => {
     try {
+      setLoading(true)
       setBoard(await api.getBoard(slug, search, sort))
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to load board")
+    } finally {
+      setLoading(false)
     }
   }
   useEffect(() => {
@@ -149,54 +154,67 @@ const PublicBoard = () => {
         </div>
         {message && <p className="mt-4 text-sm text-[#625BF6]">{message}</p>}
         <div className="mt-5 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-          <div className="divide-y divide-neutral-100">
-            {pageItems(
-              [...activePosts].sort((a, b) =>
-                sort === "top"
-                  ? b.votes - a.votes ||
-                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                  : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-              ),
-              page,
-              PAGE_SIZE,
-            ).map((post) => (
-              <article key={post.id} className="flex gap-4 p-5 transition hover:bg-neutral-50">
-                <button
-                  onClick={() => void vote(post)}
-                  className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-[#FAFAF8] text-sm font-bold hover:bg-[#625BF6]/10"
-                >
-                  <span className="text-lg">↑</span>
-                  <span>{post.votes}</span>
-                </button>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-bold">{post.title}</h2>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyles[post.status]}`}
-                    >
-                      {statusLabel[post.status]}
-                    </span>
+          {loading ? (
+            <div
+              role="status"
+              aria-busy="true"
+              className="flex min-h-48 items-center justify-center gap-3 text-sm font-medium text-neutral-500"
+            >
+              <LoadingSpinner />
+              Loading features…
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {pageItems(
+                [...activePosts].sort((a, b) =>
+                  sort === "top"
+                    ? b.votes - a.votes ||
+                      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+                ),
+                page,
+                PAGE_SIZE,
+              ).map((post) => (
+                <article key={post.id} className="flex gap-4 p-5 transition hover:bg-neutral-50">
+                  <button
+                    onClick={() => void vote(post)}
+                    className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-[#FAFAF8] text-sm font-bold hover:bg-[#625BF6]/10"
+                  >
+                    <span className="text-lg">↑</span>
+                    <span>{post.votes}</span>
+                  </button>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="font-bold">{post.title}</h2>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyles[post.status]}`}
+                      >
+                        {statusLabel[post.status]}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-neutral-500">{post.description}</p>
+                    <p className="mt-3 text-xs text-neutral-400">
+                      by {post.author}
+                      {post.teamReply ? " · Team replied" : ""}
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-neutral-500">{post.description}</p>
-                  <p className="mt-3 text-xs text-neutral-400">
-                    by {post.author}
-                    {post.teamReply ? " · Team replied" : ""}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-          {board && activePosts.length === 0 && (
+                </article>
+              ))}
+            </div>
+          )}
+          {!loading && board && activePosts.length === 0 && (
             <p className="p-10 text-center text-sm text-neutral-500">
               No active features match your search.
             </p>
           )}
-          <Pagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            totalItems={activePosts.length}
-            onPageChange={setPage}
-          />
+          {!loading && (
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              totalItems={activePosts.length}
+              onPageChange={setPage}
+            />
+          )}
         </div>
       </main>
       {showForm && (

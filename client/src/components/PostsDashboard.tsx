@@ -4,6 +4,7 @@ import { api, ApiError, type Post, type PostStatus, type Workspace } from "../ap
 import FounderNav from "./FounderNav"
 import CopyBoardLink from "./CopyBoardLink"
 import Pagination from "./Pagination"
+import LoadingState from "./LoadingState"
 import { pageItems } from "./pagination"
 
 const labels: Record<PostStatus, string> = {
@@ -67,7 +68,10 @@ const PostsDashboard = () => {
     const selected = workspaces.find((item) => item.slug === slug)
     if (selected) {
       setPage(1)
-      void loadWorkspace(selected).catch(() => undefined)
+      setLoading(true)
+      void loadWorkspace(selected)
+        .catch(() => undefined)
+        .finally(() => setLoading(false))
     }
   }
   const changeStatus = async (post: Post, status: PostStatus) => {
@@ -110,21 +114,21 @@ const PostsDashboard = () => {
     filter === "ALL"
       ? posts.filter((post) => post.status !== "SHIPPED")
       : posts.filter((post) => post.status === filter)
+  if (loading) return <LoadingState label="Loading your workspace…" />
+
   if (!workspace)
     return (
       <main className="grid min-h-screen place-items-center bg-[#FAFAF8] px-6">
         <div className="max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <p className="font-semibold">
-            {loading ? "Loading your workspace..." : error || "Unable to load your workspace."}
+          <p role="alert" className="font-semibold">
+            {error || "Unable to load your workspace."}
           </p>
-          {!loading && (
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-5 rounded-xl bg-[#625BF6] px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              Try again
-            </button>
-          )}
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-xl bg-[#625BF6] px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Try again
+          </button>
         </div>
       </main>
     )

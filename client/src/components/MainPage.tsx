@@ -5,6 +5,7 @@ import type { ReactNode } from "react"
 import { api, ApiError } from "../api"
 import CopyBoardLink from "./CopyBoardLink"
 import BrandMark from "./BrandMark"
+import LoadingSpinner from "./LoadingSpinner"
 type IconName = "sparkles" | "arrow" | "up" | "comment" | "bolt" | "check"
 
 const Icon = ({ name, size = 18 }: { name: IconName; size?: number }) => {
@@ -118,7 +119,14 @@ const MainPage = () => {
                 onClick={() => void startTrial()}
                 disabled={trialLoading}
               >
-                {trialLoading ? "Checking session…" : "Start for free"}
+                {trialLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoadingSpinner className="h-4 w-4" />
+                    Checking session…
+                  </span>
+                ) : (
+                  "Start for free"
+                )}
               </Button>
             </div>
             <p className="mt-4 text-xs text-neutral-400">
@@ -297,8 +305,15 @@ const MainPage = () => {
                 onClick={() => void startTrial()}
                 disabled={trialLoading}
               >
-                {trialLoading ? "Checking session…" : "Start your free trial"}{" "}
-                <Icon name="arrow" size={16} />
+                {trialLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoadingSpinner className="h-4 w-4" />
+                    Checking session…
+                  </span>
+                ) : (
+                  "Start your free trial"
+                )}{" "}
+                {!trialLoading && <Icon name="arrow" size={16} />}
               </Button>
               {trialError && (
                 <p role="alert" className="mt-3 text-sm text-red-600">

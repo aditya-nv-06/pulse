@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { api } from "../api"
 import BrandMark from "./BrandMark"
+import LoadingSpinner from "./LoadingSpinner"
 
 const Payment = () => {
   const navigate = useNavigate()
@@ -97,7 +98,14 @@ const Payment = () => {
           disabled={loading}
           className="mt-6 w-full rounded-xl bg-[#625BF6] px-4 py-3 font-semibold text-white transition hover:bg-[#625BF6] disabled:cursor-wait disabled:opacity-60"
         >
-          {loading ? "Opening secure checkout..." : "Pay $24 and continue"}
+          {loading ? (
+            <span className="inline-flex items-center justify-center gap-2">
+              <LoadingSpinner className="h-4 w-4" light />
+              Opening secure checkout…
+            </span>
+          ) : (
+            "Pay $24 and continue"
+          )}
         </button>
         <button
           onClick={() => navigate("/dashboard/posts")}

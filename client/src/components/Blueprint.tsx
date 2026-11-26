@@ -8,6 +8,8 @@ import {
   type Workspace,
 } from "../api"
 import FounderNav from "./FounderNav"
+import LoadingState from "./LoadingState"
+import LoadingSpinner from "./LoadingSpinner"
 
 const nodeColors: Record<BlueprintNode["type"], string> = {
   user: "#625BF6",
@@ -96,6 +98,7 @@ const Blueprint = () => {
   const [zoom, setZoom] = useState(0.82)
   const [panning, setPanning] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
@@ -105,16 +108,22 @@ const Blueprint = () => {
   const panOrigin = useRef<Point>({ x: 0, y: 0 })
 
   const loadBlueprint = async (selected: Workspace) => {
-    const result = await api.getBlueprint(selected.slug)
-    const isLegacyLayout = Boolean(
-      result?.version && !result.version.note?.toLowerCase().includes("vertical"),
-    )
-    setNodes(fitNodesToCanvas(result?.graph.nodes ?? [], isLegacyLayout))
-    setEdges(result?.graph.edges ?? [])
-    setSelectedId(null)
-    setSelectedEdgeId(null)
-    setConnectFrom(null)
-    setPan({ x: 0, y: 0 })
+    setFetching(true)
+    setError("")
+    try {
+      const result = await api.getBlueprint(selected.slug)
+      const isLegacyLayout = Boolean(
+        result?.version && !result.version.note?.toLowerCase().includes("vertical"),
+      )
+      setNodes(fitNodesToCanvas(result?.graph.nodes ?? [], isLegacyLayout))
+      setEdges(result?.graph.edges ?? [])
+      setSelectedId(null)
+      setSelectedEdgeId(null)
+      setConnectFrom(null)
+      setPan({ x: 0, y: 0 })
+    } finally {
+      setFetching(false)
+    }
   }
 
   useEffect(() => {
@@ -126,11 +135,15 @@ const Blueprint = () => {
           if (items[0]) {
             setWorkspace(items[0])
             await loadBlueprint(items[0])
+          } else {
+            setError("No workspace is available for this account.")
+            setFetching(false)
           }
         })
-        .catch((loadError) =>
-          setError(loadError instanceof Error ? loadError.message : "Unable to load workspace"),
-        )
+        .catch((loadError) => {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load workspace")
+          setFetching(false)
+        })
     })
   }, [])
 
@@ -186,7 +199,9 @@ const Blueprint = () => {
     if (selected) {
       setWorkspace(selected)
       setMessage("")
-      void loadBlueprint(selected)
+      void loadBlueprint(selected).catch((loadError) =>
+        setError(loadError instanceof Error ? loadError.message : "Unable to load blueprint"),
+      )
     }
   }
 
@@ -332,12 +347,9 @@ const Blueprint = () => {
 
   const selectedNode = nodes.find((node) => node.id === selectedId)
   const positions = nodes.map((node) => ({ ...node, position: node.position ?? { x: 80, y: 80 } }))
-  if (!workspace)
-    return (
-      <main className="grid min-h-screen place-items-center bg-[#FAFAF8] px-6">
-        <p className="font-semibold">Loading blueprint...</p>
-      </main>
-    )
+  if (fetching) return <LoadingState label="Loading blueprint…" />
+
+  if (!workspace) return <LoadingState label={error} error />
 
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId)
 
@@ -418,7 +430,14 @@ const Blueprint = () => {
                   disabled={loading || productPlan.trim().length < 20}
                   className="rounded-xl bg-[#625BF6] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? "Building map…" : "Generate architecture"}
+                  {loading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <LoadingSpinner className="h-4 w-4" light />
+                      Building map…
+                    </span>
+                  ) : (
+                    "Generate architecture"
+                  )}
                 </button>
               </div>
             </div>

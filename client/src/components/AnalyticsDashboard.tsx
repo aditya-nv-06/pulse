@@ -4,6 +4,9 @@ import { api, ApiError, type Workspace, type WorkspaceAnalytics } from "../api"
 import FounderNav from "./FounderNav"
 import Pagination from "./Pagination"
 import { pageItems } from "./pagination"
+import LoadingState from "./LoadingState"
+import { m, useReducedMotion } from "framer-motion"
+import LoadingSpinner from "./LoadingSpinner"
 
 type Range = 7 | 30 | 90
 type Metric = "requests" | "votes" | "meetingRequests"
@@ -129,6 +132,7 @@ const changeLabel = (current: number, previous: number) =>
     : `${current > previous ? "+" : ""}${Math.round(((current - previous) / previous) * 100)}%`
 
 const AnalyticsDashboard = () => {
+  const reduceMotion = useReducedMotion()
   const navigate = useNavigate()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -245,10 +249,14 @@ const AnalyticsDashboard = () => {
     [analytics, days],
   )
 
+  if (loading && !analytics) return <LoadingState label="Loading analytics…" />
+
   if (!workspace)
     return (
       <main className="grid min-h-screen place-items-center bg-[#FAFAF8] px-6">
-        <p className="font-semibold">{error || "Loading analytics…"}</p>
+        <p role="alert" className="font-semibold">
+          {error}
+        </p>
       </main>
     )
 
@@ -338,7 +346,18 @@ const AnalyticsDashboard = () => {
             </div>
           </div>
           {loading && !analytics ? (
-            <div className="mt-8 h-64 animate-pulse rounded-2xl bg-[#FAFAF8]" />
+            <m.div
+              className="mt-8 grid h-64 place-items-center rounded-2xl bg-[#FAFAF8]"
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              aria-busy="true"
+            >
+              <div className="flex items-center gap-3 text-sm font-medium text-neutral-500">
+                <LoadingSpinner />
+                Loading activity…
+              </div>
+            </m.div>
           ) : analytics ? (
             analytics.trends.some((point) => point[metric] > 0) ? (
               <div className="mt-6">

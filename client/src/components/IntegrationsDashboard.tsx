@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { api, ApiError, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
+import LoadingState from "./LoadingState"
 
 const IntegrationsDashboard = () => {
   const navigate = useNavigate()
@@ -12,20 +13,26 @@ const IntegrationsDashboard = () => {
   const [sheetsSaving, setSheetsSaving] = useState(false)
   const [sheetsMessage, setSheetsMessage] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(true)
   const activeWorkspace = useRef<string | null>(null)
 
   const loadWorkspace = async (selected: Workspace) => {
     activeWorkspace.current = selected.slug
+    setLoading(true)
+    setError("")
     setWorkspace(selected)
     setSheetsEnabled(false)
     setSheetsWebhookUrl("")
     setSheetsMessage("")
     setSheetsSaving(false)
-    const settings = await api.getGoogleSheetsSettings(selected.slug)
-    if (activeWorkspace.current !== selected.slug) return
-    setSheetsEnabled(settings.enabled)
-    setSheetsWebhookUrl(settings.webhookUrl)
-    setError("")
+    try {
+      const settings = await api.getGoogleSheetsSettings(selected.slug)
+      if (activeWorkspace.current !== selected.slug) return
+      setSheetsEnabled(settings.enabled)
+      setSheetsWebhookUrl(settings.webhookUrl)
+    } finally {
+      if (activeWorkspace.current === selected.slug) setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -35,13 +42,17 @@ const IntegrationsDashboard = () => {
         .then(async (items) => {
           setWorkspaces(items)
           if (items[0]) await loadWorkspace(items[0])
-          else setError("No workspace is available for this account.")
+          else {
+            setError("No workspace is available for this account.")
+            setLoading(false)
+          }
         })
         .catch((loadError) => {
           if (loadError instanceof ApiError && loadError.message === "Session expired")
             navigate("/login")
           else
             setError(loadError instanceof Error ? loadError.message : "Unable to load integrations")
+          setLoading(false)
         })
     })
   }, [navigate])
@@ -92,11 +103,15 @@ const IntegrationsDashboard = () => {
     await saveSheetsSettings(!sheetsEnabled)
   }
 
+  if (loading) return <LoadingState label="Loading integrations…" />
+
   if (!workspace)
     return (
       <main className="grid min-h-screen place-items-center bg-[#FAFAF8] px-6">
         <div className="max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <p className="font-semibold">{error || "Loading integrations…"}</p>
+          <p role="alert" className="font-semibold">
+            {error}
+          </p>
         </div>
       </main>
     )
