@@ -10,7 +10,7 @@
     "cf:types": "wrangler types --config ../wrangler.jsonc src/worker-configuration.d.ts",
     "cf:dev": "wrangler dev --config ../wrangler.jsonc --env-file .env",
     "cf:check": "node scripts/validate-cloudflare-config.mjs",
-    "cf:deploy": "node scripts/validate-cloudflare-config.mjs && npm --prefix ../client run build && npm run cf:types && DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/pulse npm run db:generate && wrangler deploy --config ../wrangler.jsonc",
+    "cf:deploy": "node scripts/validate-cloudflare-config.mjs && npm --prefix ../client run build && npm run cf:types && DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/pulse npm run db:generate && wrangler deploy --config ../wrangler.jsonc --secrets-file ../.wrangler-secrets",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "prisma generate",

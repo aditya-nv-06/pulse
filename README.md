@@ -47,6 +47,17 @@ Pulse is a product feedback platform with public feedback boards and a workspace
 
 The Vite development server proxies `/api` to `http://localhost:4000`. The API health endpoint is available at `http://localhost:4000/api/health`.
 
+## Deploying to Cloudflare Workers
+
+For a local Wrangler deployment, create the ignored root file `.wrangler-secrets` with only the production secrets Wrangler should upload:
+
+```dotenv
+DATABASE_URL="your Neon connection string"
+RESEND_API_KEY="your Resend API key"
+```
+
+Then run `npm run cf:deploy` from `server/`. This invokes Wrangler with `--secrets-file ../.wrangler-secrets`. Keep this file out of Git. A Git based Cloudflare build cannot read a local ignored file, so add `DATABASE_URL` and `RESEND_API_KEY` under the Worker’s Settings → Variables and Secrets in Cloudflare for that deployment path.
+
 ## Code quality
 
 Run these from `client/` and `server/` as needed:
