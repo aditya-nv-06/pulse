@@ -56,7 +56,15 @@ DATABASE_URL="your Neon connection string"
 RESEND_API_KEY="your Resend API key"
 ```
 
-Then run `npm run cf:deploy` from `server/`. This invokes Wrangler with `--secrets-file ../.wrangler-secrets`. Keep this file out of Git. A Git based Cloudflare build cannot read a local ignored file, so add `DATABASE_URL` and `RESEND_API_KEY` under the Worker’s Settings → Variables and Secrets in Cloudflare for that deployment path.
+Then run `npm run cf:deploy` from `server/`. This invokes Wrangler with `--secrets-file ../.wrangler-secrets`. Keep this file out of Git.
+
+For Cloudflare Workers Builds, add `DATABASE_URL` and `RESEND_API_KEY` as **build secrets** under the Worker’s **Settings → Builds → Build variables and secrets**. These are separate from the Worker’s runtime Variables and Secrets. Set the deploy command to:
+
+```sh
+bash scripts/cloudflare-deploy.sh
+```
+
+The script writes those two build secrets to a temporary JSON file and passes it to Wrangler with `--secrets-file`; it removes the file when deployment finishes. Cloudflare documents build variables and secrets as values available only to the build environment, and Wrangler supports JSON secrets files for deployment.
 
 ## Code quality
 
