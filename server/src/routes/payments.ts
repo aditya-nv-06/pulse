@@ -15,8 +15,8 @@ const paymentSetupMessage =
     : "Payments are not configured. Add Razorpay credentials to the server environment."
 
 const createOrderSchema = z.object({
-  amount: z.literal(2400),
-  currency: z.literal("USD"),
+  amount: z.literal(221700),
+  currency: z.literal("INR"),
   receipt: z.string().trim().min(1).max(40).optional(),
 })
 
@@ -85,7 +85,7 @@ paymentsRouter.post("/create-order", async (request: AuthRequest, response) => {
         process.env.NODE_ENV === "production"
           ? paymentUnavailableMessage
           : (providerError?.description ??
-            "Razorpay could not create the order. Check that your account supports USD payments and that its API credentials are valid."),
+            "Razorpay could not create the order. Check that your account supports INR payments and that its API credentials are valid."),
     })
   }
 })
@@ -125,8 +125,8 @@ paymentsRouter.post("/verify-payment", async (request: AuthRequest, response) =>
     const razorpay = razorpayClient()
     const order = await razorpay.orders.fetch(orderId)
     if (
-      order.amount !== 2400 ||
-      order.currency !== "USD" ||
+      order.amount !== 221700 ||
+      order.currency !== "INR" ||
       order.notes?.userId !== request.userId
     ) {
       response.status(400).json({ error: "Payment order does not belong to this account" })

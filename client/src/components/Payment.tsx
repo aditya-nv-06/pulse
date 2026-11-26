@@ -15,7 +15,7 @@ const Payment = () => {
     setError("")
     setMessage("")
     try {
-      const order = await api.createOrder(2400)
+      const order = await api.createOrder(221700)
       const configuredKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID?.trim()
       if (configuredKeyId && configuredKeyId !== order.key_id) {
         throw new Error(
@@ -90,7 +90,7 @@ const Payment = () => {
             <p className="mt-1 text-sm text-neutral-500">Secure payment via Razorpay</p>
           </div>
           <p className="shrink-0 text-2xl font-bold">
-            $24<span className="ml-1 text-sm font-medium text-neutral-500">USD</span>
+            ₹2,217<span className="ml-1 text-sm font-medium text-neutral-500">INR</span>
           </p>
         </div>
         <button
@@ -104,7 +104,7 @@ const Payment = () => {
               Opening secure checkout…
             </span>
           ) : (
-            "Pay $24 and continue"
+            "Pay ₹2,217 and continue"
           )}
         </button>
         <button

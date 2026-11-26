@@ -217,10 +217,10 @@ export const api = {
     }),
   createCheckout: () =>
     request<{ subscriptionId: string; keyId: string }>("/billing/checkout", { method: "POST" }),
-  createOrder: (amount: 2400) =>
+  createOrder: (amount: 221700) =>
     request<{ key_id: string; order_id: string; amount: number; currency: string }>(
       "/create-order",
-      { method: "POST", body: JSON.stringify({ amount, currency: "USD" }) },
+      { method: "POST", body: JSON.stringify({ amount, currency: "INR" }) },
     ),
   verifyPayment: (payload: {
     razorpay_order_id: string
