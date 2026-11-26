@@ -6,6 +6,7 @@ import { prisma } from "../db.js"
 import { handleError } from "../middleware/auth.js"
 import { sendMagicLink } from "../services/email.js"
 import { getSessionCookie, sessionHash } from "../lib/session.js"
+import { hasMailServer } from "../lib/email-domain.js"
 
 export const authRouter = Router()
 const emailSchema = z.object({
@@ -51,6 +52,24 @@ authRouter.post("/request-link", async (request, response) => {
       response
         .status(429)
         .json({ error: "Too many sign-in requests. Please try again in an hour." })
+      return
+    }
+
+    const domain = email.slice(email.lastIndexOf("@") + 1)
+    let domainAcceptsMail: boolean
+    try {
+      domainAcceptsMail = await hasMailServer(domain)
+    } catch (error) {
+      console.error("Email domain validation is temporarily unavailable", error)
+      response.status(503).json({
+        error: "We couldn't verify this email address right now. Please try again shortly.",
+      })
+      return
+    }
+    if (!domainAcceptsMail) {
+      response.status(400).json({
+        error: "This email domain can't receive email. Check the address and try again.",
+      })
       return
     }
 
