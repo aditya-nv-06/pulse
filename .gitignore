@@ -12,6 +12,7 @@ node_modules/
 dist/
 **/dist/
 coverage/
+/.wrangler/
 
 # Local databases and logs
 *.db

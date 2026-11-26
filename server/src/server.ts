@@ -7,6 +7,7 @@ import type { Server } from "node:http"
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 
 const connectToDatabase = async () => {
+  if (!config.databaseUrl) throw new Error("DATABASE_URL is required to connect to PostgreSQL")
   const database = new URL(config.databaseUrl)
   const address = `${database.hostname}:${database.port || "5432"}`
   const attempts = 6

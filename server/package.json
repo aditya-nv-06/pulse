@@ -7,6 +7,9 @@
     "build": "tsc",
     "dev": "tsx watch src/server.ts",
     "start": "node ./dist/src/server.js",
+    "cf:types": "wrangler types --config ../wrangler.jsonc src/worker-configuration.d.ts",
+    "cf:dev": "wrangler dev --config ../wrangler.jsonc --env-file .env",
+    "cf:deploy": "node scripts/validate-cloudflare-config.mjs && npm --prefix ../client run build && npm run cf:types && DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/pulse npm run db:generate && wrangler deploy --config ../wrangler.jsonc",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "prisma generate",
@@ -37,6 +40,7 @@
     "@types/pg": "^8.15.5",
     "prettier": "^3.10.1",
     "prisma": "8.1.0-dev.10",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.168.0"
   }
 }

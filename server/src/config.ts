@@ -6,7 +6,7 @@ const required = (name: string) => {
   return value
 }
 export const config = {
-  databaseUrl: required("DATABASE_URL"),
+  databaseUrl: process.env.DATABASE_URL ?? "",
   port: Number(process.env.PORT ?? 4000),
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
   appUrl: process.env.APP_URL ?? "http://localhost:5173",
@@ -35,6 +35,9 @@ if (config.isProduction) {
     ["CLIENT_ORIGIN", config.clientOrigin],
     ["APP_URL", config.appUrl],
   ] as const) {
+    if (value.startsWith("REPLACE_WITH_")) {
+      throw new Error(`${name} must be set to the deployed HTTPS origin`)
+    }
     let url: URL
     try {
       url = new URL(value)
@@ -49,7 +52,10 @@ if (config.isProduction) {
     throw new Error(
       "RESEND_API_KEY is required in production so sign-in links are delivered by email",
     )
-  if (config.resendFrom.includes("onboarding@resend.dev")) {
+  if (
+    config.resendFrom.includes("onboarding@resend.dev") ||
+    config.resendFrom.startsWith("REPLACE_WITH_")
+  ) {
     throw new Error("Set RESEND_FROM to a verified sender domain in production")
   }
 }
