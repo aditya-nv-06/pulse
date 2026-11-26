@@ -16,19 +16,12 @@ const Payment = () => {
     setMessage("")
     try {
       const order = await api.createOrder(221700)
-      const configuredKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID?.trim()
-      if (configuredKeyId && configuredKeyId !== order.key_id) {
+      if (!order.key_id)
         throw new Error(
-          "Frontend VITE_RAZORPAY_KEY_ID does not match the server RAZORPAY_KEY_ID. Update both to the same Razorpay key ID and rebuild the frontend.",
-        )
-      }
-      const keyId = configuredKeyId || order.key_id
-      if (!keyId)
-        throw new Error(
-          "Razorpay is not configured. Set VITE_RAZORPAY_KEY_ID in the frontend and Razorpay credentials in the server.",
+          "Razorpay is not configured. Add the matching key ID and secret to the server environment.",
         )
       const razorpay = new window.Razorpay({
-        key: keyId,
+        key: order.key_id,
         amount: order.amount,
         currency: order.currency,
         name: "Pulse",

@@ -13,7 +13,7 @@ Deploy `server/` with Node.js 22 or newer. Install dependencies with `npm ci`, g
 - `BREVO_API_KEY` and `BREVO_SENDER_EMAIL`: a Brevo API key and a sender address configured and verified in Brevo. Brevo may replace a free-email sender address with its shared transactional sender domain; this is a temporary workaround with weaker branding and deliverability than an authenticated custom domain. The login screen reports when Brevo accepts a message for delivery; check Brevo transaction logs for eventual delivery or bounce status.
 - `PORT`: supplied by most hosting platforms; Pulse listens on `0.0.0.0`.
 
-Razorpay variables (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and, for subscriptions, `RAZORPAY_PLAN_ID`) are needed only when enabling payments. Set matching live-mode credentials on the API and public key ID on the frontend. AI integrations are optional; configure `XAI_API_KEY` and/or `CLOUDFLARE_ACCOUNT_ID` plus `CLOUDFLARE_API_TOKEN` for the features that use them.
+Razorpay variables (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and, for subscriptions, `RAZORPAY_PLAN_ID`) are needed only when enabling payments. Set the matching key ID and secret on the API; the checkout receives the public key ID from the API. AI integrations are optional; configure `XAI_API_KEY` and/or `CLOUDFLARE_ACCOUNT_ID` plus `CLOUDFLARE_API_TOKEN` for the features that use them.
 
 The API's `/api/health` endpoint checks database connectivity and returns HTTP 503 when PostgreSQL is unavailable. Use it for the hosting provider's readiness check. The demo workspace is never seeded in production. For local demos, set `SEED_DEMO=true` with `NODE_ENV=development`.
 
@@ -25,7 +25,7 @@ Back up the database before the first rollout and keep the backup/restore proced
 
 ## Frontend
 
-Deploy `client/` as a static site. Run `npm ci` and `npm run build`; publish `dist/`. Set `VITE_API_URL=/api` when the frontend host or reverse proxy forwards `/api` to the API. For a separately hosted API, set `VITE_API_URL` to its full HTTPS URL ending in `/api` and configure `CLIENT_ORIGIN` to the frontend's exact origin. Set `VITE_RAZORPAY_KEY_ID` only to the public key ID when payments are enabled. Vite variables are embedded in public JavaScript; never put secrets in `VITE_*` variables.
+Deploy `client/` as a static site. Run `npm ci` and `npm run build`; publish `dist/`. Set `VITE_API_URL=/api` when the frontend host or reverse proxy forwards `/api` to the API. For a separately hosted API, set `VITE_API_URL` to its full HTTPS URL ending in `/api` and configure `CLIENT_ORIGIN` to the frontend's exact origin. The checkout gets Razorpay's public key ID from the backend's create-order response, so no `VITE_RAZORPAY_KEY_ID` build variable is needed. Keep `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` on the server only; never put the secret in a `VITE_*` variable.
 
 Configure SPA fallback so client-side routes serve `index.html`, forward `/api/*` to the API when using a shared origin, and enable HTTPS for both services. Keep `.env` files out of source control and rotate any credential that has been committed or exposed.
 
@@ -44,6 +44,6 @@ For Cloudflare Workers Builds connected to GitHub, configure these in **Workers 
 - Build command: `bash scripts/cloudflare-build.sh`
 - Deploy command: `bash scripts/cloudflare-deploy.sh`
 
-The build script installs both packages, creates `client/dist`, validates the Worker settings, and generates Prisma Client using a dummy build-only URL. It never connects to a database. Add `DATABASE_URL`, `BREVO_API_KEY`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`, plus either `XAI_API_KEY` or both `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`, as build secrets. The deploy script passes these values as Worker secrets while deploying. Cloudflare's build credentials only authorize deployment; they are not automatically available to the running Worker as AI or payment credentials.
+The build script installs both packages, creates `client/dist`, validates the Worker settings, and generates Prisma Client using a dummy build-only URL. It never connects to a database. Add `DATABASE_URL`, `BREVO_API_KEY`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`, plus either `XAI_API_KEY` or both `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`, as build secrets. The deploy script passes these values as Worker secrets while deploying. Cloudflare's build credentials only authorize deployment; they are not automatically available to the running Worker as AI or payment credentials. No frontend Razorpay build variable is required.
 
 The public origin in `wrangler.jsonc` must match the deployed Worker. Cloudflare Workers Free currently includes 100,000 requests per day and a 10 ms CPU limit per request. This direct Neon setup does not use Hyperdrive. External providers such as Brevo, Razorpay, Neon, and AI APIs have separate pricing and limits.
