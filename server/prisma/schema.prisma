@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PostStatus {
+  OPEN
+  PLANNED
+  IN_PROGRESS
+  SHIPPED
+}
+
+enum MeetingRequestStatus {
+  REQUESTED
+  COMPLETED
+  REJECTED
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  name         String?
+  workspaceLimit Int        @default(1)
+  subscriptionExpiresAt DateTime?
+  createdAt    DateTime    @default(now())
+  workspaces   Workspace[]
+  posts        Post[]
+  votes        Vote[]
+  sessions     Session[]
+}
+
+model MagicLinkToken {
+  id         String    @id @default(cuid())
+  email      String
+  tokenHash  String    @unique
+  returnTo   String?
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+  @@index([email, createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+}
+
+model Workspace {
+  id          String           @id @default(cuid())
+  name        String
+  slug        String           @unique
+  description String?
+  googleSheetsEnabled Boolean @default(false)
+  googleSheetsWebhookUrl String?
+  meetingEnabled Boolean @default(false)
+  meetingTitle String @default("Founder chat")
+  meetingDescription String @default("Book a conversation with the founder.")
+  meetingDuration Int @default(30)
+  meetingTimezone String @default("UTC")
+  meetingStartHour Int @default(9)
+  meetingEndHour Int @default(17)
+  meetingDays String @default("1,2,3,4,5")
+  meetingUrl String?
+  meetingReplyTo String?
+  ownerId     String
+  owner       User             @relation(fields: [ownerId], references: [id])
+  posts       Post[]
+  changelog   ChangelogEntry[]
+  createdAt   DateTime         @default(now())
+  blueprint   Blueprint?
+  aiUsage     AiUsageLog[]
+  meetings    MeetingBooking[]
+}
+
+model MeetingBooking {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  note        String?
+  startsAt    DateTime
+  duration    Int
+  createdAt   DateTime @default(now())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@unique([workspaceId, startsAt])
+  @@index([workspaceId, startsAt])
+}
+
+model Blueprint {
+  id          String             @id @default(cuid())
+  workspaceId String             @unique
+  planInput   Json
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  versions    BlueprintVersion[]
+}
+
+model BlueprintVersion {
+  id          String   @id @default(cuid())
+  blueprintId String
+  version     Int
+  nodes       Json
+  edges       Json
+  note        String?
+  createdAt   DateTime @default(now())
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  @@unique([blueprintId, version])
+}
+
+model AiUsageLog {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  operation    String
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  retried      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, createdAt])
+}
+
+model Post {
+  id           String          @id @default(cuid())
+  title        String
+  description  String
+  status       PostStatus      @default(OPEN)
+  shippedAt    DateTime?
+  teamReply    String?
+  meetingRequested Boolean @default(false)
+  meetingRequestStatus MeetingRequestStatus?
+  meetingRequestResolutionNote String?
+  meetingInviteSentAt DateTime?
+  meetingInviteUrl String?
+  meetingInviteFrom String?
+  mergedIntoId String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  authorId     String
+  workspaceId  String
+  author       User            @relation(fields: [authorId], references: [id])
+  workspace    Workspace       @relation(fields: [workspaceId], references: [id])
+  votes        Vote[]
+  changelog   ChangelogPost[]
+  mergedInto   Post?           @relation("MergedPosts", fields: [mergedIntoId], references: [id])
+  duplicates   Post[]          @relation("MergedPosts")
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  voterKey  String
+  createdAt DateTime @default(now())
+  postId    String
+  userId    String?
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@unique([postId, voterKey])
+}
+
+model ChangelogEntry {
+  id          String          @id @default(cuid())
+  title       String
+  body        String
+  publishedAt DateTime        @default(now())
+  workspaceId String
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  posts       ChangelogPost[]
+}
+
+model ChangelogPost {
+  changelogId String
+  postId      String
+  changelog   ChangelogEntry @relation(fields: [changelogId], references: [id], onDelete: Cascade)
+  post        Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([changelogId, postId])
+}

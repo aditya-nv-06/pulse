@@ -1,0 +1,19 @@
+# Local environment files; keep the template available for commits.
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+
+# Local database files and logs
+*.db
+*.db-journal
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

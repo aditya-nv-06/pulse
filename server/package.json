@@ -1,0 +1,42 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node ./dist/src/server.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate:deploy": "prisma migrate deploy"
+  },
+  "keywords": [],
+  "type": "module",
+  "dependencies": {
+    "@dagrejs/dagre": "^2.0.4",
+    "@prisma/adapter-pg": "8.1.0-dev.10",
+    "@prisma/client": "8.1.0-dev.10",
+    "@types/express": "^5.0.6",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "jsonrepair": "^3.15.0",
+    "openai": "^6.21.0",
+    "pg": "^8.16.3",
+    "razorpay": "^2.9.8",
+    "resend": "^6.4.2",
+    "tsx": "^4.20.6",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.5",
+    "prettier": "^3.10.1",
+    "prisma": "8.1.0-dev.10",
+    "typescript": "^6.0.3"
+  }
+}
