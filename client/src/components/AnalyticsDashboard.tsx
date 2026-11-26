@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { api, ApiError, type Workspace, type WorkspaceAnalytics } from "../api"
 import FounderNav from "./FounderNav"
-import Pagination, { pageItems } from "./Pagination"
+import Pagination from "./Pagination"
+import { pageItems } from "./pagination"
 
 type Range = 7 | 30 | 90
 type Metric = "requests" | "votes" | "meetingRequests"
@@ -139,28 +140,34 @@ const AnalyticsDashboard = () => {
   const [error, setError] = useState("")
   const activeSlug = useRef<string | null>(null)
 
-  const loadAnalytics = async (slug: string, range: Range) => {
-    activeSlug.current = slug
-    setLoading(true)
-    setError("")
-    try {
-      const result = await api.getAnalytics(slug, range)
-      if (activeSlug.current === slug) setAnalytics(result)
-    } catch (loadError) {
-      if (activeSlug.current !== slug) return
-      if (loadError instanceof ApiError && loadError.message === "Session expired")
-        navigate("/login")
-      else setError(loadError instanceof Error ? loadError.message : "Unable to load analytics")
-    } finally {
-      if (activeSlug.current === slug) setLoading(false)
-    }
-  }
+  const loadAnalytics = useCallback(
+    async (slug: string, range: Range) => {
+      const requestKey = `${slug}:${range}`
+      activeSlug.current = requestKey
+      setLoading(true)
+      setError("")
+      try {
+        const result = await api.getAnalytics(slug, range)
+        if (activeSlug.current === requestKey) setAnalytics(result)
+      } catch (loadError) {
+        if (activeSlug.current !== requestKey) return
+        if (loadError instanceof ApiError && loadError.message === "Session expired")
+          navigate("/login")
+        else setError(loadError instanceof Error ? loadError.message : "Unable to load analytics")
+      } finally {
+        if (activeSlug.current === requestKey) setLoading(false)
+      }
+    },
+    [navigate],
+  )
 
   useEffect(() => {
+    let cancelled = false
     queueMicrotask(() => {
       api
         .getWorkspaces()
-        .then(async (items) => {
+        .then((items) => {
+          if (cancelled) return
           setWorkspaces(items)
           const selected = items[0]
           if (!selected) {
@@ -169,9 +176,9 @@ const AnalyticsDashboard = () => {
             return
           }
           setWorkspace(selected)
-          await loadAnalytics(selected.slug, days)
         })
         .catch((loadError) => {
+          if (cancelled) return
           if (loadError instanceof ApiError && loadError.message === "Session expired")
             navigate("/login")
           else
@@ -179,18 +186,27 @@ const AnalyticsDashboard = () => {
           setLoading(false)
         })
     })
+    return () => {
+      cancelled = true
+      activeSlug.current = null
+    }
   }, [navigate])
 
   useEffect(() => {
-    if (workspace) void loadAnalytics(workspace.slug, days)
-  }, [days])
+    if (!workspace) return
+    const requestKey = `${workspace.slug}:${days}`
+    queueMicrotask(() => {
+      if (activeSlug.current !== requestKey) void loadAnalytics(workspace.slug, days)
+    })
+    return () => {
+      if (activeSlug.current === requestKey) activeSlug.current = null
+    }
+  }, [days, loadAnalytics, workspace])
 
   const switchWorkspace = (slug: string) => {
     const selected = workspaces.find((item) => item.slug === slug)
     if (!selected) return
-    activeSlug.current = selected.slug
     setWorkspace(selected)
-    void loadAnalytics(selected.slug, days)
   }
 
   const cards = useMemo(

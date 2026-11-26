@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import { api, type Post, type PublicBoard as BoardData } from "../api"
 import { useParams } from "react-router-dom"
 import PublicBoardNav from "./PublicBoardNav"
-import Pagination, { pageItems } from "./Pagination"
+import Pagination from "./Pagination"
+import { pageItems } from "./pagination"
 
 const statusLabel = {
   OPEN: "Open",

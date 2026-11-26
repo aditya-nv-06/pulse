@@ -2,7 +2,8 @@ import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import { api, type ChangelogEntry } from "../api"
 import PublicBoardNav from "./PublicBoardNav"
-import Pagination, { pageItems } from "./Pagination"
+import Pagination from "./Pagination"
+import { pageItems } from "./pagination"
 
 const PAGE_SIZE = 10
 

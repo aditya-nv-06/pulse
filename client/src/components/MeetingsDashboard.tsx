@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { api, ApiError, type MeetingRequestStatus, type Post, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
-import Pagination, { pageItems } from "./Pagination"
+import Pagination from "./Pagination"
+import { pageItems } from "./pagination"
 
 const statusLabels = {
   OPEN: "Open",
@@ -39,26 +40,31 @@ const MeetingsDashboard = () => {
   const [resolutionNote, setResolutionNote] = useState("")
   const activeSlug = useRef<string | null>(null)
 
-  const loadWorkspace = async (selected: Workspace) => {
-    activeSlug.current = selected.slug
-    setWorkspace(selected)
-    setError("")
-    try {
-      const [settings, items] = await Promise.all([
-        api.getMeetingRequestSettings(selected.slug),
-        api.getMeetingRequests(selected.slug),
-      ])
-      if (activeSlug.current !== selected.slug) return
-      setEnabled(settings.enabled)
-      setRequests(items)
-    } catch (loadError) {
-      if (activeSlug.current !== selected.slug) return
-      if (loadError instanceof ApiError && loadError.message === "Session expired")
-        navigate("/login")
-      else
-        setError(loadError instanceof Error ? loadError.message : "Unable to load meeting requests")
-    }
-  }
+  const loadWorkspace = useCallback(
+    async (selected: Workspace) => {
+      activeSlug.current = selected.slug
+      setWorkspace(selected)
+      setError("")
+      try {
+        const [settings, items] = await Promise.all([
+          api.getMeetingRequestSettings(selected.slug),
+          api.getMeetingRequests(selected.slug),
+        ])
+        if (activeSlug.current !== selected.slug) return
+        setEnabled(settings.enabled)
+        setRequests(items)
+      } catch (loadError) {
+        if (activeSlug.current !== selected.slug) return
+        if (loadError instanceof ApiError && loadError.message === "Session expired")
+          navigate("/login")
+        else
+          setError(
+            loadError instanceof Error ? loadError.message : "Unable to load meeting requests",
+          )
+      }
+    },
+    [navigate],
+  )
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -75,7 +81,7 @@ const MeetingsDashboard = () => {
           else setError(loadError instanceof Error ? loadError.message : "Unable to load workspace")
         })
     })
-  }, [navigate])
+  }, [loadWorkspace, navigate])
 
   const switchWorkspace = (slug: string) => {
     const selected = workspaces.find((item) => item.slug === slug)

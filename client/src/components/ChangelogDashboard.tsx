@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { api, type ChangelogEntry, type Post, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
-import Pagination, { pageItems } from "./Pagination"
+import Pagination from "./Pagination"
+import { pageItems } from "./pagination"
 
 const PAGE_SIZE = 10
 

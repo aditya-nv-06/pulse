@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom"
 import { api, ApiError, type Post, type PostStatus, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
 import CopyBoardLink from "./CopyBoardLink"
-import Pagination, { pageItems } from "./Pagination"
+import Pagination from "./Pagination"
+import { pageItems } from "./pagination"
 
 const labels: Record<PostStatus, string> = {
   OPEN: "Open",

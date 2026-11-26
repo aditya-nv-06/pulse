@@ -5,12 +5,6 @@ type PaginationProps = {
   onPageChange: (page: number) => void
 }
 
-export const pageItems = <T,>(items: T[], page: number, pageSize: number) =>
-  items.slice(
-    (Math.min(page, Math.max(1, Math.ceil(items.length / pageSize))) - 1) * pageSize,
-    Math.min(page, Math.max(1, Math.ceil(items.length / pageSize))) * pageSize,
-  )
-
 const Pagination = ({ page, pageSize, totalItems, onPageChange }: PaginationProps) => {
   const pageCount = Math.ceil(totalItems / pageSize)
   if (pageCount < 2) return null
