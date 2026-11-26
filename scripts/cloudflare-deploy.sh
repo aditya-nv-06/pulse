@@ -4,6 +4,19 @@ set -euo pipefail
 : "${DATABASE_URL:?Add DATABASE_URL as a secret under Workers Builds > Build variables and secrets}"
 : "${BREVO_API_KEY:?Add BREVO_API_KEY as a secret under Workers Builds > Build variables and secrets}"
 
+if [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" && -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+  echo "CLOUDFLARE_API_TOKEN is required when CLOUDFLARE_ACCOUNT_ID is set" >&2
+  exit 1
+fi
+if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" && -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+  echo "CLOUDFLARE_ACCOUNT_ID is required when CLOUDFLARE_API_TOKEN is set" >&2
+  exit 1
+fi
+if [[ -z "${XAI_API_KEY:-}" && -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+  echo "Add XAI_API_KEY or both CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN as build secrets" >&2
+  exit 1
+fi
+
 secrets_file="$(mktemp)"
 trap 'rm -f "$secrets_file"' EXIT
 
@@ -16,6 +29,13 @@ fs.writeFileSync(
   JSON.stringify({
     DATABASE_URL: process.env.DATABASE_URL,
     BREVO_API_KEY: process.env.BREVO_API_KEY,
+    ...(process.env.CLOUDFLARE_ACCOUNT_ID
+      ? {
+          CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID,
+          CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN,
+        }
+      : {}),
+    ...(process.env.XAI_API_KEY ? { XAI_API_KEY: process.env.XAI_API_KEY } : {}),
   }),
   { mode: 0o600 },
 );

@@ -266,8 +266,8 @@ const generateWithCloudflare = async (plan: PlanInput, missing: string[] = []) =
 
 const generateWithXai = async (plan: PlanInput, missing: string[] = []) => {
   if (!client)
-    throw new Error(
-      "No AI provider is configured. Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN, or XAI_API_KEY.",
+    throw new BlueprintProviderError(
+      "AI blueprint generation isn't configured for this deployment. Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN, or set XAI_API_KEY.",
     )
   let completion
   try {

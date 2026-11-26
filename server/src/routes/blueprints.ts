@@ -97,13 +97,7 @@ blueprintRouter.post("/:slug/blueprint/generate", async (request: AuthRequest, r
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to generate blueprint"
     const status =
-      error instanceof BlueprintProviderError
-        ? 503
-        : message.includes("limited")
-          ? 429
-          : message.includes("XAI_API_KEY")
-            ? 503
-            : 500
+      error instanceof BlueprintProviderError ? 503 : message.includes("limited") ? 429 : 500
     response.status(status).json({ error: message })
   }
 })

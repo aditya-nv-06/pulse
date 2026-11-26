@@ -44,6 +44,6 @@ For Cloudflare Workers Builds connected to GitHub, configure these in **Workers 
 - Build command: `bash scripts/cloudflare-build.sh`
 - Deploy command: `bash scripts/cloudflare-deploy.sh`
 
-The build script installs both packages, creates `client/dist`, validates the Worker settings, and generates Prisma Client using a dummy build-only URL. It never connects to a database. Add `DATABASE_URL` and `BREVO_API_KEY` as build secrets. The deploy script passes them as Worker secrets while deploying.
+The build script installs both packages, creates `client/dist`, validates the Worker settings, and generates Prisma Client using a dummy build-only URL. It never connects to a database. Add `DATABASE_URL`, `BREVO_API_KEY`, and either `XAI_API_KEY` or both `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` as build secrets. The deploy script passes them as Worker secrets while deploying. Cloudflare's build credentials only authorize deployment; they are not automatically available to the running Worker as AI credentials.
 
 The public origin in `wrangler.jsonc` must match the deployed Worker. Cloudflare Workers Free currently includes 100,000 requests per day and a 10 ms CPU limit per request. This direct Neon setup does not use Hyperdrive. External providers such as Brevo, Razorpay, Neon, and AI APIs have separate pricing and limits.
