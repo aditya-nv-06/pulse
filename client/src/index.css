@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neutral-50: #fafaf8;
+  --color-neutral-100: #f3f3f0;
+  --color-neutral-200: #e5e5e1;
+  --color-neutral-300: #a3a3a3;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #525252;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #171717;
+  --color-neutral-800: #171717;
+  --color-neutral-900: #171717;
+  --color-neutral-950: #171717;
+}
+
+@layer base {
+  body {
+    background-color: #fafaf8;
+    color: #171717;
+  }
+}
