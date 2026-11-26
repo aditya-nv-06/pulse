@@ -92,8 +92,7 @@ export type BlueprintResult = {
 }
 
 const apiUrl = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "")
-const apiUnavailableMessage =
-  "Pulse API is unavailable. Start the server on port 4000 and try again."
+const apiUnavailableMessage = "We couldn't reach Pulse. Check your connection and try again."
 export class ApiError extends Error {
   code?: string
   constructor(message: string, code?: string) {
@@ -121,12 +120,15 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
   } catch {
     throw new Error(
       response.ok
-        ? "Pulse returned an unreadable response."
-        : `Pulse request failed (${response.status}).`,
+        ? "Pulse returned an invalid response. Please try again."
+        : "We couldn't complete that request. Please try again.",
     )
   }
   if (!response.ok)
-    throw new ApiError(data.error ?? `Pulse request failed (${response.status}).`, data.code)
+    throw new ApiError(
+      data.error ?? "We couldn't complete that request. Please try again.",
+      data.code,
+    )
   return data
 }
 

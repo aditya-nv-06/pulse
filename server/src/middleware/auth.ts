@@ -24,5 +24,9 @@ export const requireAuth = async (request: AuthRequest, response: Response, next
 
 export const handleError = (error: unknown, response: Response) => {
   console.error(error)
-  response.status(500).json({ error: "Something went wrong" })
+  response.status(500).json({
+    code: "INTERNAL_ERROR",
+    error:
+      "We couldn't complete that request. Please try again. If the issue continues, contact support.",
+  })
 }

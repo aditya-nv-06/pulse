@@ -214,14 +214,21 @@ workspaceRouter.get("/:slug/analytics", async (request: AuthRequest, response) =
 
 workspaceRouter.post("/", async (request: AuthRequest, response) => {
   try {
-    const name = String(request.body.name ?? "").trim()
-    const slug = String(request.body.slug ?? "")
-      .trim()
-      .toLowerCase()
-    if (!name || !slugPattern.test(slug)) {
-      response.status(400).json({ error: "Use a workspace name and a lowercase slug" })
+    const parsed = z
+      .object({
+        name: z.string().trim().min(1).max(80),
+        slug: z.string().trim().toLowerCase().min(1).max(50).regex(slugPattern),
+      })
+      .safeParse(request.body)
+    if (!parsed.success) {
+      response.status(400).json({
+        code: "INVALID_WORKSPACE_DETAILS",
+        error:
+          "Enter a workspace name (up to 80 characters) and a URL slug using lowercase letters, numbers, and hyphens.",
+      })
       return
     }
+    const { name, slug } = parsed.data
     const user = await prisma.user.findUnique({
       where: { id: request.userId! },
       select: { workspaceLimit: true, subscriptionExpiresAt: true },
@@ -237,9 +244,20 @@ workspaceRouter.post("/", async (request: AuthRequest, response) => {
       })
       return
     }
-    response
-      .status(201)
-      .json(await prisma.workspace.create({ data: { name, slug, ownerId: request.userId! } }))
+    try {
+      response
+        .status(201)
+        .json(await prisma.workspace.create({ data: { name, slug, ownerId: request.userId! } }))
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+        response.status(409).json({
+          code: "WORKSPACE_SLUG_TAKEN",
+          error: "That public URL is already in use. Choose a different workspace slug.",
+        })
+        return
+      }
+      throw error
+    }
   } catch (error) {
     handleError(error, response)
   }

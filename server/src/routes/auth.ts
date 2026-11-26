@@ -13,15 +13,16 @@ const emailSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   returnTo: z.string().optional(),
 })
-const requestsByEmail = new Map<string, number[]>()
 const requestsByIp = new Map<string, number[]>()
 const windowMs = 60 * 60 * 1000
 const maxRequests = 5
+const maxIpRequests = 20
+const maxIpBuckets = 10_000
 
 const hashToken = sessionHash
 const sessionCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: config.isProduction,
   sameSite: "lax" as const,
   path: "/",
 }
@@ -30,13 +31,15 @@ const safeReturnTo = (value: string | null | undefined) =>
 const allowedByRate = (bucket: Map<string, number[]>, key: string) => {
   const now = Date.now()
   const recent = (bucket.get(key) ?? []).filter((timestamp) => now - timestamp < windowMs)
-  if (recent.length >= maxRequests) {
-    bucket.set(key, recent)
-    return false
+  const allowed = recent.length < maxIpRequests
+  if (allowed) recent.push(now)
+  bucket.delete(key)
+  if (bucket.size >= maxIpBuckets) {
+    const oldestKey = bucket.keys().next().value
+    if (oldestKey) bucket.delete(oldestKey)
   }
-  recent.push(now)
   bucket.set(key, recent)
-  return true
+  return allowed
 }
 
 authRouter.post("/request-link", async (request, response) => {
@@ -47,11 +50,12 @@ authRouter.post("/request-link", async (request, response) => {
       return
     }
     const { email } = parsed.data
-    const ip = request.ip ?? "unknown"
-    if (!allowedByRate(requestsByEmail, email) || !allowedByRate(requestsByIp, ip)) {
+    const ip = request.get("cf-connecting-ip") || request.ip || "unknown"
+    if (!allowedByRate(requestsByIp, ip)) {
       response
         .status(429)
-        .json({ error: "Too many sign-in requests. Please try again in an hour." })
+        .setHeader("Retry-After", "3600")
+        .json({ code: "RATE_LIMITED", error: "Too many sign-in requests. Please try again later." })
       return
     }
 
@@ -76,7 +80,12 @@ authRouter.post("/request-link", async (request, response) => {
     const now = new Date()
     const rawToken = crypto.randomBytes(32).toString("hex")
     const tokenHash = hashToken(rawToken)
-    await prisma.$transaction(async (transaction) => {
+    const tokenCreated = await prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${email}, 0))`
+      const recentRequests = await transaction.magicLinkToken.count({
+        where: { email, createdAt: { gte: new Date(now.getTime() - windowMs) } },
+      })
+      if (recentRequests >= maxRequests) return false
       await transaction.magicLinkToken.updateMany({
         where: { email, usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
@@ -89,7 +98,16 @@ authRouter.post("/request-link", async (request, response) => {
           returnTo: safeReturnTo(parsed.data.returnTo),
         },
       })
+      return true
     })
+    if (!tokenCreated) {
+      response.status(429).setHeader("Retry-After", "3600").json({
+        code: "RATE_LIMITED",
+        error:
+          "For security, sign-in links are limited to five requests per email each hour. Try again later.",
+      })
+      return
+    }
     let emailAccepted: boolean
     try {
       emailAccepted = await sendMagicLink(email, rawToken, safeReturnTo(parsed.data.returnTo))
@@ -116,6 +134,8 @@ authRouter.post("/request-link", async (request, response) => {
 
 authRouter.get("/verify", async (request, response) => {
   try {
+    response.setHeader("Cache-Control", "no-store")
+    response.setHeader("Referrer-Policy", "no-referrer")
     const rawToken = String(request.query.token ?? "")
     const tokenHash = hashToken(rawToken)
     const now = new Date()

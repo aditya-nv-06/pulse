@@ -7,6 +7,7 @@ cd "$repo_root"
 
 npm ci --prefix client
 DATABASE_URL="$build_database_url" npm ci --prefix server
+npm --prefix server run cf:types
 npm --prefix client run build
 npm --prefix server run cf:check
 DATABASE_URL="$build_database_url" npm --prefix server run db:generate

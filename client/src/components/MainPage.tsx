@@ -2,6 +2,7 @@ import PublicBoardNav from "./PublicBoardNav"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { ReactNode } from "react"
+import { m, useReducedMotion } from "framer-motion"
 import { api, ApiError } from "../api"
 import CopyBoardLink from "./CopyBoardLink"
 import BrandMark from "./BrandMark"
@@ -46,7 +47,7 @@ const Button = ({
   variant?: "primary" | "secondary"
 }) => (
   <button
-    className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors ${
+    className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-[transform,background-color] duration-200 hover:-translate-y-0.5 active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none ${
       variant === "secondary"
         ? "border border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
         : "bg-[#625BF6] text-white hover:bg-[#625BF6]"
@@ -68,6 +69,7 @@ const Logo = () => (
 
 const MainPage = () => {
   const navigate = useNavigate()
+  const reduceMotion = useReducedMotion()
   const [trialLoading, setTrialLoading] = useState(false)
   const [trialError, setTrialError] = useState("")
   const startTrial = async () => {
@@ -91,27 +93,56 @@ const MainPage = () => {
   }
   return (
     <>
-      <PublicBoardNav />
+      <PublicBoardNav onStartFree={() => void startTrial()} starting={trialLoading} />
       <main>
-        <section className="relative overflow-hidden px-5 pb-24 pt-20 lg:px-8 lg:pb-32 lg:pt-28">
-          <div className="hero-grid absolute inset-0 -z-10 opacity-70" />
+        <section className="relative isolate overflow-hidden px-5 pb-24 pt-20 lg:px-8 lg:pb-32 lg:pt-28">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+            <div className="hero-grid absolute inset-0 opacity-50" />
+            <m.div
+              className="absolute left-1/2 top-8 size-[28rem] -translate-x-1/2 rounded-full bg-[#625BF6]/10 blur-3xl"
+              animate={
+                reduceMotion ? undefined : { scale: [0.92, 1.06, 0.92], opacity: [0.45, 0.8, 0.45] }
+              }
+              transition={{ duration: 12, ease: "easeInOut", repeat: Infinity }}
+            />
+          </div>
           <div className="mx-auto max-w-5xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#625BF6]/20 bg-[#625BF6]/5 px-3 py-1.5 text-xs font-semibold text-[#625BF6]">
+            <m.div
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#625BF6]/20 bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#625BF6] shadow-sm shadow-[#625BF6]/5 backdrop-blur"
+            >
               <Icon name="sparkles" size={14} /> Customer feedback, without the chaos
-            </div>
-            <h1 className="text-balance text-[48px] font-bold leading-[1.02] tracking-[-0.055em] text-neutral-950 sm:text-[64px] lg:text-[80px]">
+            </m.div>
+            <m.h1
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.08, ease: "easeOut" }}
+              className="text-balance text-[48px] font-bold leading-[1.02] tracking-[-0.055em] text-neutral-950 sm:text-[64px] lg:text-[80px]"
+            >
               Build what your
               <br />
               <span className="text-[#625BF6]">customers want.</span>
-            </h1>
-            <p className="mx-auto mt-7 max-w-2xl text-balance text-lg leading-8 text-neutral-600">
+            </m.h1>
+            <m.p
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.18, ease: "easeOut" }}
+              className="mx-auto mt-7 max-w-2xl text-balance text-lg leading-8 text-neutral-600"
+            >
               One calm place to collect ideas, understand demand, and keep everyone in the loop as
               you ship.
-            </p>
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            </m.p>
+            <m.div
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.28, ease: "easeOut" }}
+              className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
+            >
               <CopyBoardLink
                 slug="acme"
-                className="h-12 w-full justify-center rounded-xl border border-neutral-200 bg-white px-4 sm:w-auto"
+                className="h-12 w-full justify-center rounded-xl border border-neutral-200 bg-white/90 px-4 shadow-sm transition hover:border-[#625BF6]/40 hover:shadow-md sm:w-auto"
               />
               <Button
                 className="h-12 w-full px-6 sm:w-auto"
@@ -128,18 +159,32 @@ const MainPage = () => {
                   "Start for free"
                 )}
               </Button>
-            </div>
-            <p className="mt-4 text-xs text-neutral-400">
+            </m.div>
+            <m.p
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.45, delay: 0.38 }}
+              className="mt-4 text-xs text-neutral-400"
+            >
               Free for small teams · Set up in under 5 minutes
-            </p>
+            </m.p>
             {trialError && (
               <p role="alert" className="mt-3 text-sm text-red-600">
                 {trialError}
               </p>
             )}
           </div>
-          <div className="mx-auto mt-20 max-w-5xl">
-            <div className="relative rounded-[24px] border border-neutral-200 bg-white p-2 shadow-[0_32px_80px_rgba(25,23,44,.12)]">
+          <m.div
+            initial={reduceMotion ? false : { opacity: 0, y: 30, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.75, delay: 0.22, ease: "easeOut" }}
+            className="mx-auto mt-20 max-w-5xl"
+          >
+            <m.div
+              animate={reduceMotion ? undefined : { y: [0, -7, 0] }}
+              transition={{ duration: 7, ease: "easeInOut", repeat: Infinity }}
+              className="relative rounded-[24px] border border-white/80 bg-white/80 p-2 shadow-[0_32px_90px_rgba(25,23,44,.16)] ring-1 ring-neutral-200/70 backdrop-blur"
+            >
               <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-[#FAFAF8]">
                 <div className="flex h-12 items-center border-b border-neutral-200 bg-white px-4">
                   <div className="flex gap-1.5">
@@ -189,9 +234,12 @@ const MainPage = () => {
                           "192",
                         ],
                         ["Custom reporting views", "Save and share filtered dashboards.", "147"],
-                      ].map(([title, text, votes]) => (
-                        <div
-                          className="flex gap-4 rounded-xl border border-neutral-200 bg-white p-4"
+                      ].map(([title, text, votes], index) => (
+                        <m.div
+                          initial={reduceMotion ? false : { opacity: 0, x: 14 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: 0.55 + index * 0.1 }}
+                          className="flex gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
                           key={title}
                         >
                           <div className="flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-neutral-100 text-[10px] font-bold">
@@ -202,14 +250,14 @@ const MainPage = () => {
                             <div className="text-sm font-bold">{title}</div>
                             <div className="mt-1 text-[11px] text-neutral-400">{text}</div>
                           </div>
-                        </div>
+                        </m.div>
                       ))}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </m.div>
+          </m.div>
         </section>
 
         <section
@@ -217,14 +265,20 @@ const MainPage = () => {
           className="border-y border-neutral-200 bg-white px-5 py-24 lg:px-8 lg:py-32"
         >
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-2xl">
-              <p className="text-[#625BF6] font-medium">A clearer feedback loop</p>
-              <h2 className="font-bold text-2xl">
+            <m.div
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+              whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="max-w-2xl"
+            >
+              <p className="font-medium text-[#625BF6]">A clearer feedback loop</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
                 From scattered opinions
                 <br />
                 to confident decisions.
               </h2>
-            </div>
+            </m.div>
             <div className="mt-16 grid gap-5 lg:grid-cols-3">
               {[
                 {
@@ -245,26 +299,42 @@ const MainPage = () => {
                   title: "Close the loop",
                   text: "Share progress automatically and turn every release into a reason for customers to return.",
                 },
-              ].map((feature) => (
-                <article
-                  className="group rounded-3xl border border-neutral-200 bg-[#FAFAF8] p-8 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-neutral-200/60"
+              ].map((feature, index) => (
+                <m.article
+                  initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+                  whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                  whileHover={reduceMotion ? undefined : { y: -5 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.45, delay: index * 0.09, ease: "easeOut" }}
+                  className="group rounded-3xl border border-neutral-200 bg-gradient-to-br from-white to-[#FAFAF8] p-8 shadow-sm shadow-neutral-200/30 transition-shadow hover:shadow-xl hover:shadow-neutral-200/60"
                   key={feature.title}
                 >
                   <div className="mb-16 flex items-start justify-between">
-                    <span className="grid size-11 place-items-center rounded-xl bg-[#625BF6] text-white">
+                    <m.span
+                      whileHover={reduceMotion ? undefined : { rotate: -7, scale: 1.08 }}
+                      transition={{ type: "spring", stiffness: 320, damping: 18 }}
+                      className="grid size-11 place-items-center rounded-xl bg-[#625BF6] text-white shadow-lg shadow-[#625BF6]/20"
+                    >
                       <Icon name={feature.icon} />
-                    </span>
+                    </m.span>
                     <span className="text-xs font-bold text-neutral-300">{feature.n}</span>
                   </div>
                   <h3 className="text-xl font-bold tracking-[-0.025em]">{feature.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-neutral-500">{feature.text}</p>
-                </article>
+                </m.article>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="pricing" className="px-5 py-24 lg:px-8 lg:py-32">
+        <m.section
+          id="pricing"
+          initial={reduceMotion ? false : { opacity: 0, y: 22 }}
+          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.18 }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
+          className="px-5 py-24 lg:px-8 lg:py-32"
+        >
           <div className="mx-auto grid max-w-7xl items-center gap-12 rounded-[32px] bg-neutral-950 p-8 text-white md:p-14 lg:grid-cols-[1fr_440px]">
             <div>
               <p className="eyebrow text-[#A3A3A3]">Simple pricing</p>
@@ -276,7 +346,11 @@ const MainPage = () => {
                 them.
               </p>
             </div>
-            <div className="rounded-2xl bg-white p-7 text-neutral-950">
+            <m.div
+              whileHover={reduceMotion ? undefined : { y: -4 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="rounded-2xl bg-white p-7 text-neutral-950 shadow-[0_20px_60px_rgba(0,0,0,.18)]"
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-bold">Team plan</p>
@@ -320,9 +394,9 @@ const MainPage = () => {
                   {trialError}
                 </p>
               )}
-            </div>
+            </m.div>
           </div>
-        </section>
+        </m.section>
       </main>
       <footer className="border-t border-neutral-200 px-5 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">

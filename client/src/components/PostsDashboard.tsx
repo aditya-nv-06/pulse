@@ -5,6 +5,7 @@ import FounderNav from "./FounderNav"
 import CopyBoardLink from "./CopyBoardLink"
 import Pagination from "./Pagination"
 import LoadingState from "./LoadingState"
+import LoadingSpinner from "./LoadingSpinner"
 import { pageItems } from "./pagination"
 
 const labels: Record<PostStatus, string> = {
@@ -32,6 +33,7 @@ const PostsDashboard = () => {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false)
   const [workspaceName, setWorkspaceName] = useState("")
   const [workspaceSlug, setWorkspaceSlug] = useState("")
 
@@ -86,6 +88,8 @@ const PostsDashboard = () => {
   const createWorkspace = async (event: FormEvent) => {
     event.preventDefault()
     if (!workspaceName.trim() || !workspaceSlug.trim()) return
+    setCreatingWorkspace(true)
+    setError("")
     try {
       const created = await api.createWorkspace(
         workspaceName.trim(),
@@ -96,17 +100,23 @@ const PostsDashboard = () => {
       setModalOpen(false)
       setWorkspaceName("")
       setWorkspaceSlug("")
+      setCreatingWorkspace(false)
     } catch (workspaceError) {
       if (workspaceError instanceof ApiError && workspaceError.code === "UPGRADE_REQUIRED") {
         localStorage.setItem(
           "pulse_pending_workspace",
           JSON.stringify({ name: workspaceName.trim(), slug: workspaceSlug.trim().toLowerCase() }),
         )
+        setCreatingWorkspace(false)
         navigate("/payment")
-      } else
+      } else {
         setError(
-          workspaceError instanceof Error ? workspaceError.message : "Unable to create workspace",
+          workspaceError instanceof Error
+            ? workspaceError.message
+            : "We couldn't create your workspace. Please try again.",
         )
+        setCreatingWorkspace(false)
+      }
     }
   }
 
@@ -114,6 +124,18 @@ const PostsDashboard = () => {
     filter === "ALL"
       ? posts.filter((post) => post.status !== "SHIPPED")
       : posts.filter((post) => post.status === filter)
+  if (creatingWorkspace)
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#FAFAF8] px-6 text-neutral-950">
+        <div role="status" aria-live="polite" className="text-center">
+          <LoadingSpinner className="mx-auto h-10 w-10" />
+          <h1 className="mt-6 text-2xl font-bold tracking-tight">Creating your workspace</h1>
+          <p className="mt-2 text-sm text-neutral-500">
+            Setting up your founder dashboard and public feedback board…
+          </p>
+        </div>
+      </main>
+    )
   if (loading) return <LoadingState label="Loading your workspace…" />
 
   if (!workspace)
@@ -157,7 +179,10 @@ const PostsDashboard = () => {
               className="rounded-xl border border-neutral-200 bg-white px-3 py-1.5"
             />
             <button
-              onClick={() => setModalOpen(true)}
+              onClick={() => {
+                setError("")
+                setModalOpen(true)
+              }}
               className="rounded-xl bg-[#625BF6] px-4 py-2.5 text-sm font-semibold text-white"
             >
               Add workspace
@@ -274,6 +299,11 @@ const PostsDashboard = () => {
             <p className="mt-3 text-sm leading-6 text-neutral-500">
               Your free plan includes one workspace. Upgrade when you are ready to add another.
             </p>
+            {error && (
+              <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </p>
+            )}
             <form onSubmit={createWorkspace} className="mt-6 space-y-3">
               <input
                 required
@@ -298,8 +328,11 @@ const PostsDashboard = () => {
                 >
                   Cancel
                 </button>
-                <button className="flex-1 rounded-xl bg-[#625BF6] px-4 py-3 text-sm font-semibold text-white">
-                  Continue
+                <button
+                  disabled={creatingWorkspace}
+                  className="flex-1 rounded-xl bg-[#625BF6] px-4 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+                >
+                  Create workspace
                 </button>
               </div>
             </form>
