@@ -6,9 +6,12 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "NODE_ENV": "production",
-    "CLIENT_ORIGIN": "REPLACE_WITH_WORKER_ORIGIN",
-    "APP_URL": "REPLACE_WITH_WORKER_ORIGIN",
-    "RESEND_FROM": "REPLACE_WITH_VERIFIED_RESEND_FROM",
+    "CLIENT_ORIGIN": "https://pulse.feedbackloop.workers.dev",
+    "APP_URL": "https://pulse.feedbackloop.workers.dev",
+    "RESEND_FROM": "Pulse <adityanv4@gmail.com>",
+  },
+  "secrets": {
+    "required": ["DATABASE_URL", "RESEND_API_KEY"],
   },
   "assets": {
     "directory": "./client/dist",
@@ -16,11 +19,4 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"],
   },
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      "id": "replace-with-hyperdrive-config-id",
-      "localConnectionString": "postgresql://postgres:postgres@localhost:5432/pulse",
-    },
-  ],
 }

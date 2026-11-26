@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 
-const config = JSON.parse(readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8"))
+const rawConfig = readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8")
+const config = JSON.parse(rawConfig.replace(/,\s*([}\]])/g, "$1"))
 const errors = []
 
 for (const name of ["CLIENT_ORIGIN", "APP_URL"]) {
@@ -29,9 +30,10 @@ if (
   errors.push("RESEND_FROM must be a sender address on a verified Resend domain")
 }
 
-const hyperdriveId = config.hyperdrive?.[0]?.id
-if (!/^[a-f0-9]{32}$/i.test(hyperdriveId ?? "")) {
-  errors.push("Set hyperdrive[0].id to the 32-character ID created in your Cloudflare account")
+for (const secretName of ["DATABASE_URL", "RESEND_API_KEY"]) {
+  if (!config.secrets?.required?.includes(secretName)) {
+    errors.push(`Declare ${secretName} in secrets.required in wrangler.jsonc`)
+  }
 }
 
 if (errors.length) {

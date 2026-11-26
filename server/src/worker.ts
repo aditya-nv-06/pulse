@@ -11,7 +11,7 @@ export default {
     const path = new URL(request.url).pathname
     if (!path.startsWith("/api/")) return env.ASSETS.fetch(request)
 
-    const client = createPrismaClient(env.HYPERDRIVE.connectionString)
+    const client = createPrismaClient(env.DATABASE_URL)
     try {
       const apiRequest = request as Parameters<NonNullable<typeof apiHandler.fetch>>[0]
       return await runWithPrismaClient(client, () => apiHandler.fetch!(apiRequest, env, ctx))
