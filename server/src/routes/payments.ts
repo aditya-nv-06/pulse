@@ -47,6 +47,10 @@ paymentsRouter.post("/create-order", async (request: AuthRequest, response) => {
       return
     }
     if (!config.razorpayKeyId || !config.razorpayKeySecret) {
+      console.error("Razorpay checkout is not configured on this Worker", {
+        keyIdConfigured: Boolean(config.razorpayKeyId),
+        keySecretConfigured: Boolean(config.razorpayKeySecret),
+      })
       response.status(503).json({ error: paymentSetupMessage })
       return
     }

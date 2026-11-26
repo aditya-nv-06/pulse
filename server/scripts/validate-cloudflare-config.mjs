@@ -26,7 +26,12 @@ if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.vars?.BREVO_SENDER_EMAIL ?? "")) {
   errors.push("BREVO_SENDER_EMAIL must be a valid sender address configured in Brevo")
 }
 
-for (const secretName of ["DATABASE_URL", "BREVO_API_KEY"]) {
+for (const secretName of [
+  "DATABASE_URL",
+  "BREVO_API_KEY",
+  "RAZORPAY_KEY_ID",
+  "RAZORPAY_KEY_SECRET",
+]) {
   if (!config.secrets?.required?.includes(secretName)) {
     errors.push(`Declare ${secretName} in secrets.required in wrangler.jsonc`)
   }

@@ -54,11 +54,14 @@ For a local Wrangler deployment, create the ignored root file `.wrangler-secrets
 ```dotenv
 DATABASE_URL="your Neon connection string"
 BREVO_API_KEY="your Brevo API key"
+# Include these only when enabling Razorpay payments.
+RAZORPAY_KEY_ID="your Razorpay key ID"
+RAZORPAY_KEY_SECRET="your Razorpay key secret"
 ```
 
 Then run `npm run cf:deploy` from `server/`. This invokes Wrangler with `--secrets-file ../.wrangler-secrets`. Keep this file out of Git.
 
-For Cloudflare Workers Builds, add `DATABASE_URL`, `BREVO_API_KEY`, and an AI provider as **build secrets** under the Worker’s **Settings → Builds → Build variables and secrets**. For Cloudflare AI, add both `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; alternatively add `XAI_API_KEY`. These are separate from the Worker’s runtime Variables and Secrets. The deploy script transfers these values to the Worker. Set the deploy command to:
+For Cloudflare Workers Builds, add `DATABASE_URL`, `BREVO_API_KEY`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET` as **build secrets** under the Worker’s **Settings → Builds → Build variables and secrets**. Also add an AI provider: both `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`, or `XAI_API_KEY`. These are separate from the Worker’s runtime Variables and Secrets. The deploy script transfers these values to the Worker. Set the deploy command to:
 
 ```sh
 bash scripts/cloudflare-deploy.sh

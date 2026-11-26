@@ -3,6 +3,8 @@ set -euo pipefail
 
 : "${DATABASE_URL:?Add DATABASE_URL as a secret under Workers Builds > Build variables and secrets}"
 : "${BREVO_API_KEY:?Add BREVO_API_KEY as a secret under Workers Builds > Build variables and secrets}"
+: "${RAZORPAY_KEY_ID:?Add RAZORPAY_KEY_ID as a secret under Workers Builds > Build variables and secrets}"
+: "${RAZORPAY_KEY_SECRET:?Add RAZORPAY_KEY_SECRET as a secret under Workers Builds > Build variables and secrets}"
 
 if [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" && -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
   echo "CLOUDFLARE_API_TOKEN is required when CLOUDFLARE_ACCOUNT_ID is set" >&2
@@ -36,6 +38,8 @@ fs.writeFileSync(
         }
       : {}),
     ...(process.env.XAI_API_KEY ? { XAI_API_KEY: process.env.XAI_API_KEY } : {}),
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
   }),
   { mode: 0o600 },
 );

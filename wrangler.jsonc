@@ -11,7 +11,7 @@
     "BREVO_SENDER_EMAIL": "adityanv4@gmail.com",
   },
   "secrets": {
-    "required": ["DATABASE_URL", "BREVO_API_KEY"],
+    "required": ["DATABASE_URL", "BREVO_API_KEY", "RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET"],
   },
   "assets": {
     "directory": "./client/dist",
