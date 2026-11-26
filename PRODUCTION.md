@@ -33,10 +33,17 @@ Configure SPA fallback so client-side routes serve `index.html`, forward `/api/*
 
 The repo also includes a single Worker deployment that serves the Vite frontend and Express API from the same origin. This keeps the current session cookie setup same-origin. The API uses the existing PostgreSQL database through Cloudflare Hyperdrive; it does not migrate data or change the database schema.
 
-1. Authenticate Wrangler with `cd server && npx wrangler login`.
+1. If you deploy through Cloudflare Workers Builds, its build token handles deployment auth. For local Wrangler deploys, either authenticate with `cd server && npx wrangler login` after unsetting `CLOUDFLARE_API_TOKEN`, or use an account API token with `CLOUDFLARE_ACCOUNT_ID` set.
 2. Create a Hyperdrive configuration in the Cloudflare dashboard for the existing PostgreSQL database. Copy its ID into `hyperdrive[0].id` in `wrangler.jsonc`. Keep the Neon connection string in Cloudflare's Hyperdrive configuration rather than committing it.
 3. Find your account's `workers.dev` subdomain in Workers & Pages. The origin for this Worker is `https://pulse.<your-subdomain>.workers.dev`. Replace the `CLIENT_ORIGIN` and `APP_URL` placeholders with that origin, and set `RESEND_FROM` to an address on a verified Resend domain.
 4. Add `RESEND_API_KEY` as a Worker secret in the Cloudflare dashboard (or use `npx wrangler secret put RESEND_API_KEY` from `server/`). Add Razorpay and AI credentials as secrets only if those integrations are enabled.
 5. From `server/`, run `npm run cf:deploy`. The script validates the deployment config, builds the client, generates types and Prisma Client, and deploys the Worker. It does not run database migrations.
+
+For Cloudflare Workers Builds connected to GitHub, configure these in **Workers & Pages → your Worker → Settings → Builds**:
+
+- Build command: `bash scripts/cloudflare-build.sh`
+- Deploy command: `./server/node_modules/.bin/wrangler deploy --config wrangler.jsonc`
+
+The build script installs both packages, creates `client/dist`, validates the Worker settings, and generates Prisma Client using a dummy build-only URL. It never connects to a database. The deploy command then packages the prepared assets and Worker code.
 
 The default Hyperdrive ID and public origin in `wrangler.jsonc` are placeholders. The deploy script refuses to run until you replace them. Cloudflare Workers Free currently includes 100,000 requests per day, a 10 ms CPU limit per request, and 100,000 Hyperdrive queries per day. External providers such as Resend, Razorpay, Neon, and AI APIs have separate pricing and limits.
