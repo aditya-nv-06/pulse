@@ -5,10 +5,31 @@ import { postInclude, serializePost } from "../lib/posts.js"
 import { addFeedbackFeatureToBlueprint } from "../services/blueprint-sync.js"
 import { sendGoogleSheetsFeature } from "../services/google-sheets.js"
 import { sendFounderMeetingRequestNotice } from "../services/email.js"
+import { runInBackground } from "../lib/background.js"
 import { z } from "zod"
 
 export const publicRouter = Router()
 const publicEmailSchema = z.string().trim().toLowerCase().max(254).email()
+
+publicRouter.get("/:slug/changelog", async (request, response) => {
+  try {
+    const workspace = await prisma.workspace.findUnique({
+      where: { slug: request.params.slug },
+      select: { id: true, name: true, slug: true },
+    })
+    if (!workspace) {
+      response.status(404).json({ error: "Changelog not found" })
+      return
+    }
+    const entries = await prisma.changelogEntry.findMany({
+      where: { workspaceId: workspace.id },
+      orderBy: { publishedAt: "desc" },
+    })
+    response.setHeader("Cache-Control", "no-store").json({ workspace, entries })
+  } catch (error) {
+    handleError(error, response)
+  }
+})
 
 publicRouter.get("/:slug", async (request, response) => {
   try {
@@ -35,7 +56,7 @@ publicRouter.get("/:slug", async (request, response) => {
       orderBy: { publishedAt: "desc" },
       take: 3,
     })
-    response.json({
+    response.setHeader("Cache-Control", "no-store").json({
       workspace: {
         id: workspace.id,
         name: workspace.name,
@@ -97,8 +118,8 @@ publicRouter.post("/:slug/posts", async (request, response) => {
           })
         : duplicate
       if (shouldNotifyFounder) {
-        try {
-          await sendFounderMeetingRequestNotice({
+        runInBackground(
+          sendFounderMeetingRequestNotice({
             founderEmail: workspace.owner.email,
             requesterName: author.name ?? email.split("@")[0] ?? "Customer",
             requesterEmail: email,
@@ -107,10 +128,9 @@ publicRouter.post("/:slug/posts", async (request, response) => {
             workspaceName: workspace.name,
             workspaceSlug: workspace.slug,
             postId: existing.id,
-          })
-        } catch (error) {
-          console.error("Founder meeting request notification failed", error)
-        }
+          }),
+          "Founder meeting request notification failed",
+        )
       }
       response.status(200).json(serializePost(existing))
       return
@@ -128,8 +148,8 @@ publicRouter.post("/:slug/posts", async (request, response) => {
     })
     const serialized = serializePost(post)
     if (meetingRequested) {
-      try {
-        await sendFounderMeetingRequestNotice({
+      runInBackground(
+        sendFounderMeetingRequestNotice({
           founderEmail: workspace.owner.email,
           requesterName: author.name ?? email.split("@")[0] ?? "Customer",
           requesterEmail: email,
@@ -138,10 +158,9 @@ publicRouter.post("/:slug/posts", async (request, response) => {
           workspaceName: workspace.name,
           workspaceSlug: workspace.slug,
           postId: post.id,
-        })
-      } catch (error) {
-        console.error("Founder meeting request notification failed", error)
-      }
+        }),
+        "Founder meeting request notification failed",
+      )
     }
     try {
       await addFeedbackFeatureToBlueprint(workspace.id, { id: post.id, title, description })
@@ -150,18 +169,17 @@ publicRouter.post("/:slug/posts", async (request, response) => {
     }
     const googleSheetsWebhookUrl = workspace.googleSheetsWebhookUrl
     if (workspace.googleSheetsEnabled && googleSheetsWebhookUrl) {
-      try {
-        await sendGoogleSheetsFeature(googleSheetsWebhookUrl, workspace, {
+      runInBackground(
+        sendGoogleSheetsFeature(googleSheetsWebhookUrl, workspace, {
           id: serialized.id,
           title: serialized.title,
           description: serialized.description,
           author: serialized.author ?? "Customer",
           status: serialized.status,
           createdAt: serialized.createdAt.toISOString(),
-        })
-      } catch (error) {
-        console.error("Google Sheets feature webhook delivery failed", error)
-      }
+        }),
+        "Google Sheets feature webhook delivery failed",
+      )
     }
     response.status(201).json(serialized)
   } catch (error) {

@@ -2,6 +2,7 @@ import { httpServerHandler } from "cloudflare:node"
 import { app } from "./app.js"
 import { config } from "./config.js"
 import { createPrismaClient, runWithPrismaClient } from "./db.js"
+import { runWithExecutionContext } from "./lib/background.js"
 
 app.listen(config.port)
 const apiHandler = httpServerHandler({ port: config.port })
@@ -73,7 +74,9 @@ export default {
     const client = createPrismaClient(env.DATABASE_URL)
     try {
       const apiRequest = request as Parameters<NonNullable<typeof apiHandler.fetch>>[0]
-      return await runWithPrismaClient(client, () => apiHandler.fetch!(apiRequest, env, ctx))
+      return await runWithExecutionContext(ctx, () =>
+        runWithPrismaClient(client, () => apiHandler.fetch!(apiRequest, env, ctx)),
+      )
     } finally {
       await client.$disconnect()
     }

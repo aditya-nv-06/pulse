@@ -60,6 +60,10 @@ export type PublicBoard = {
   posts: Post[]
   changelog: ChangelogEntry[]
 }
+export type PublicChangelog = {
+  workspace: Pick<Workspace, "id" | "name" | "slug">
+  entries: ChangelogEntry[]
+}
 
 export type BlueprintPlan = {
   name: string
@@ -93,6 +97,22 @@ export type BlueprintResult = {
 
 const apiUrl = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "")
 const apiUnavailableMessage = "We couldn't reach Pulse. Check your connection and try again."
+const pendingGetRequests = new Map<string, Promise<unknown>>()
+const invalidatePendingGets = (...pathPrefixes: string[]) => {
+  for (const key of pendingGetRequests.keys()) {
+    if (
+      pathPrefixes.some((prefix) => {
+        const requestUrl = `${apiUrl}${prefix}`
+        return (
+          key === requestUrl || key.startsWith(`${requestUrl}?`) || key.startsWith(`${requestUrl}/`)
+        )
+      })
+    ) {
+      pendingGetRequests.delete(key)
+    }
+  }
+}
+
 export class ApiError extends Error {
   code?: string
   constructor(message: string, code?: string) {
@@ -101,7 +121,7 @@ export class ApiError extends Error {
   }
 }
 
-const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
+const performRequest = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   let response: Response
   try {
     response = await fetch(`${apiUrl}${path}`, {
@@ -132,6 +152,23 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
   return data
 }
 
+const request = <T>(path: string, options: RequestInit = {}): Promise<T> => {
+  const method = (options.method ?? "GET").toUpperCase()
+  if (method !== "GET") return performRequest<T>(path, options)
+
+  const key = `${apiUrl}${path}`
+  const pending = pendingGetRequests.get(key)
+  if (pending) return pending as Promise<T>
+
+  const nextRequest = performRequest<T>(path, options)
+  pendingGetRequests.set(key, nextRequest)
+  const clearPending = () => {
+    if (pendingGetRequests.get(key) === nextRequest) pendingGetRequests.delete(key)
+  }
+  void nextRequest.then(clearPending, clearPending)
+  return nextRequest
+}
+
 export const auth = {
   async requestLink(email: string) {
     return request<{ message: string }>("/auth/request-link", {
@@ -153,6 +190,7 @@ export const api = {
     request<Workspace>("/workspaces", { method: "POST", body: JSON.stringify({ name, slug }) }),
   getBoard: (slug: string, search = "", sort = "top") =>
     request<PublicBoard>(`/public/${slug}?search=${encodeURIComponent(search)}&sort=${sort}`),
+  getChangelog: (slug: string) => request<PublicChangelog>(`/public/${slug}/changelog`),
   getAdminPosts: (slug: string) => request<Post[]>(`/workspaces/${slug}/posts`),
   getAnalytics: (slug: string, days: 7 | 30 | 90) =>
     request<WorkspaceAnalytics>(`/workspaces/${slug}/analytics?days=${days}`),
@@ -178,45 +216,62 @@ export const api = {
     }),
   getAdminPost: (slug: string, postId: string) =>
     request<Post>(`/workspaces/${slug}/posts/${postId}`),
-  createPost: (
+  createPost: async (
     slug: string,
     title: string,
     description: string,
     email: string,
     meetingRequested = false,
-  ) =>
-    request<Post>(`/public/${slug}/posts`, {
+  ) => {
+    const post = await request<Post>(`/public/${slug}/posts`, {
       method: "POST",
       body: JSON.stringify({ title, description, email, meetingRequested }),
-    }),
-  vote: (postId: string) => {
+    })
+    invalidatePendingGets(`/public/${slug}`)
+    return post
+  },
+  vote: async (postId: string, slug: string) => {
     const voterKey = localStorage.getItem("pulse_voter") ?? crypto.randomUUID()
     localStorage.setItem("pulse_voter", voterKey)
-    return request<{ votes: number }>(`/public/posts/${postId}/vote`, {
+    const result = await request<{ votes: number }>(`/public/posts/${postId}/vote`, {
       method: "POST",
       body: JSON.stringify({ voterKey }),
     })
+    invalidatePendingGets(`/public/${slug}`)
+    return result
   },
-  updateStatus: (slug: string, postId: string, status: PostStatus) =>
-    request<Post>(`/workspaces/${slug}/posts/${postId}`, {
+  updateStatus: async (slug: string, postId: string, status: PostStatus) => {
+    const post = await request<Post>(`/workspaces/${slug}/posts/${postId}`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
-    }),
-  reply: (slug: string, postId: string, reply: string) =>
-    request<Post>(`/workspaces/${slug}/posts/${postId}/reply`, {
+    })
+    invalidatePendingGets(`/public/${slug}`, `/workspaces/${slug}/posts`)
+    return post
+  },
+  reply: async (slug: string, postId: string, reply: string) => {
+    const post = await request<Post>(`/workspaces/${slug}/posts/${postId}/reply`, {
       method: "POST",
       body: JSON.stringify({ reply }),
-    }),
-  merge: (slug: string, postId: string, targetId: string) =>
-    request<{ merged: boolean }>(`/workspaces/${slug}/posts/${postId}/merge`, {
+    })
+    invalidatePendingGets(`/public/${slug}`, `/workspaces/${slug}/posts`)
+    return post
+  },
+  merge: async (slug: string, postId: string, targetId: string) => {
+    const result = await request<{ merged: boolean }>(`/workspaces/${slug}/posts/${postId}/merge`, {
       method: "POST",
       body: JSON.stringify({ targetId }),
-    }),
-  publishChangelog: (slug: string, title: string, body: string, postIds: string[]) =>
-    request<ChangelogEntry>(`/workspaces/${slug}/changelog`, {
+    })
+    invalidatePendingGets(`/public/${slug}`, `/workspaces/${slug}/posts`)
+    return result
+  },
+  publishChangelog: async (slug: string, title: string, body: string, postIds: string[]) => {
+    const entry = await request<ChangelogEntry>(`/workspaces/${slug}/changelog`, {
       method: "POST",
       body: JSON.stringify({ title, body, postIds }),
-    }),
+    })
+    invalidatePendingGets(`/public/${slug}`, `/workspaces/${slug}/changelog`)
+    return entry
+  },
   createCheckout: () =>
     request<{ subscriptionId: string; keyId: string }>("/billing/checkout", { method: "POST" }),
   createOrder: (amount: 221700) =>

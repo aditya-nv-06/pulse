@@ -13,6 +13,10 @@ import { prisma } from "./db.js"
 export const app = express()
 app.use(cors({ origin: config.clientOrigin, credentials: true }))
 app.disable("x-powered-by")
+app.use("/api", (_request, response, next) => {
+  response.setHeader("Cache-Control", "no-store")
+  next()
+})
 app.use(express.json({ limit: "1mb" }))
 app.get("/api/health", async (_request, response) => {
   try {

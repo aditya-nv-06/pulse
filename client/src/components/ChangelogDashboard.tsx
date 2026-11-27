@@ -5,6 +5,7 @@ import FounderNav from "./FounderNav"
 import Pagination from "./Pagination"
 import { pageItems } from "./pagination"
 import LoadingState from "./LoadingState"
+import LoadingSpinner from "./LoadingSpinner"
 
 const PAGE_SIZE = 10
 
@@ -21,7 +22,11 @@ const ChangelogDashboard = () => {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const activeSlug = useRef<string | null>(null)
+  const publishingRef = useRef(false)
+  const entriesRevision = useRef(0)
 
   const loadWorkspace = async (selected: Workspace) => {
     activeSlug.current = selected.slug
@@ -30,11 +35,11 @@ const ChangelogDashboard = () => {
     setWorkspace(selected)
     try {
       const [board, posts] = await Promise.all([
-        api.getBoard(selected.slug),
+        api.getChangelog(selected.slug),
         api.getAdminPosts(selected.slug),
       ])
       if (activeSlug.current !== selected.slug) return
-      setEntries(board.changelog)
+      setEntries(board.entries)
       setShippedPosts(posts.filter((post) => post.status === "SHIPPED"))
     } finally {
       if (activeSlug.current === selected.slug) setLoading(false)
@@ -58,22 +63,59 @@ const ChangelogDashboard = () => {
         })
     })
   }, [navigate])
+
+  useEffect(() => {
+    const slug = workspace?.slug
+    if (!slug) return
+    let active = true
+    const refreshEntries = async () => {
+      if (document.visibilityState !== "visible" || publishingRef.current) return
+      const revision = entriesRevision.current
+      setRefreshing(true)
+      try {
+        const result = await api.getChangelog(slug)
+        if (active && revision === entriesRevision.current) setEntries(result.entries)
+      } catch {
+        // Keep the existing release list visible if the background refresh fails.
+      } finally {
+        if (active) setRefreshing(false)
+      }
+    }
+    const interval = window.setInterval(() => void refreshEntries(), 20_000)
+    window.addEventListener("focus", refreshEntries)
+    document.addEventListener("visibilitychange", refreshEntries)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+      window.removeEventListener("focus", refreshEntries)
+      document.removeEventListener("visibilitychange", refreshEntries)
+    }
+  }, [workspace?.slug])
   const switchWorkspace = (slug: string) => {
     const selected = workspaces.find((item) => item.slug === slug)
     if (selected) void loadWorkspace(selected)
   }
   const publish = async (event: FormEvent) => {
     event.preventDefault()
-    if (!workspace) return
+    if (!workspace || publishingRef.current) return
+    publishingRef.current = true
+    entriesRevision.current += 1
+    setPublishing(true)
+    setError("")
     try {
       const entry = await api.publishChangelog(workspace.slug, title, body, selectedPostIds)
+      entriesRevision.current += 1
       setEntries((items) => [entry, ...items])
+      setPage(1)
       setTitle("")
       setBody("")
       setSelectedPostIds([])
       setMessage("Changelog entry published")
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : "Unable to publish changelog")
+    } finally {
+      publishingRef.current = false
+      setPublishing(false)
     }
   }
   if (loading) return <LoadingState label="Loading changelog…" />
@@ -95,6 +137,15 @@ const ChangelogDashboard = () => {
           <p className="mt-2 text-neutral-500">
             Publish shipped work and close the loop with customers.
           </p>
+          {refreshing && (
+            <p
+              role="status"
+              aria-live="polite"
+              className="mt-3 inline-flex items-center gap-2 text-xs text-neutral-500"
+            >
+              <LoadingSpinner className="h-3.5 w-3.5" /> Syncing release notes…
+            </p>
+          )}
           <div className="mt-8 space-y-6">
             {pageItems(entries, page, PAGE_SIZE).map((entry) => (
               <article
@@ -169,11 +220,23 @@ const ChangelogDashboard = () => {
                 </label>
               ))}
             </div>
-            <button className="mt-6 w-full rounded-xl bg-[#625BF6] px-4 py-3 text-sm font-semibold text-white">
-              Publish update
+            <button
+              disabled={publishing}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#625BF6] px-4 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+            >
+              {publishing && <LoadingSpinner className="h-4 w-4" light />}
+              {publishing ? "Publishing…" : "Publish update"}
             </button>
-            {message && <p className="mt-3 text-sm text-green-700">{message}</p>}
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            {message && (
+              <p role="status" className="mt-3 text-sm text-green-700">
+                {message}
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="mt-3 text-sm text-red-600">
+                {error}
+              </p>
+            )}
           </form>
         </aside>
       </main>

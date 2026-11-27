@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams } from "react-router-dom"
 import { api, type ChangelogEntry } from "../api"
 import PublicBoardNav from "./PublicBoardNav"
 import Pagination from "./Pagination"
 import { pageItems } from "./pagination"
+import LoadingState from "./LoadingState"
+import LoadingSpinner from "./LoadingSpinner"
 
 const PAGE_SIZE = 10
 
@@ -13,18 +15,54 @@ const Changelog = () => {
   const [page, setPage] = useState(1)
   const [workspaceName, setWorkspaceName] = useState(slug)
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const loadedSlug = useRef<string | null>(null)
+  const requestSequence = useRef(0)
+
+  const load = useCallback(async () => {
+    const requestId = ++requestSequence.current
+    const isInitialLoad = loadedSlug.current !== slug
+    if (isInitialLoad) setLoading(true)
+    else setRefreshing(true)
+    try {
+      const board = await api.getChangelog(slug)
+      if (requestId !== requestSequence.current) return
+      loadedSlug.current = slug
+      setEntries(board.entries)
+      setWorkspaceName(board.workspace.name)
+      setError("")
+    } catch (loadError) {
+      if (requestId === requestSequence.current)
+        setError(loadError instanceof Error ? loadError.message : "Unable to load changelog")
+    } finally {
+      if (requestId === requestSequence.current) {
+        setLoading(false)
+        setRefreshing(false)
+      }
+    }
+  }, [slug])
 
   useEffect(() => {
-    api
-      .getBoard(slug)
-      .then((board) => {
-        setEntries(board.changelog)
-        setWorkspaceName(board.workspace.name)
-      })
-      .catch((loadError) =>
-        setError(loadError instanceof Error ? loadError.message : "Unable to load changelog"),
-      )
-  }, [slug])
+    const initialLoad = window.setTimeout(() => void load(), 0)
+    const refreshChangelog = () => {
+      if (document.visibilityState === "visible") void load()
+    }
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load()
+    }, 20_000)
+    window.addEventListener("focus", refreshChangelog)
+    document.addEventListener("visibilitychange", refreshChangelog)
+    return () => {
+      window.clearTimeout(initialLoad)
+      window.clearInterval(interval)
+      window.removeEventListener("focus", refreshChangelog)
+      document.removeEventListener("visibilitychange", refreshChangelog)
+      requestSequence.current += 1
+    }
+  }, [load])
+
+  if (loading && loadedSlug.current !== slug) return <LoadingState label="Loading release notes…" />
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-neutral-950">
@@ -38,6 +76,15 @@ const Changelog = () => {
           <p className="mt-3 text-neutral-500">A running record of what the team has shipped.</p>
         </div>
         <div className="mt-12 space-y-0">
+          {refreshing && (
+            <p
+              role="status"
+              aria-live="polite"
+              className="mb-4 inline-flex items-center gap-2 text-xs text-neutral-500"
+            >
+              <LoadingSpinner className="h-3.5 w-3.5" /> Checking for updates…
+            </p>
+          )}
           {pageItems(entries, page, PAGE_SIZE).map((entry, index) => (
             <article
               key={entry.id}

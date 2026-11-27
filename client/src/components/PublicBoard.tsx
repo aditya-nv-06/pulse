@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { api, type Post, type PublicBoard as BoardData } from "../api"
 import { useParams } from "react-router-dom"
 import PublicBoardNav from "./PublicBoardNav"
@@ -32,31 +32,56 @@ const PublicBoard = () => {
   const [email, setEmail] = useState("")
   const [meetingRequested, setMeetingRequested] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const submitLock = useRef(false)
+  const boardRef = useRef<BoardData | null>(null)
+  const loadedSlug = useRef<string | null>(null)
+  const requestSequence = useRef(0)
+  const boardRevision = useRef(0)
   const [message, setMessage] = useState("")
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    const requestId = ++requestSequence.current
+    const revision = boardRevision.current
+    const isInitialLoad = !boardRef.current || loadedSlug.current !== slug
+    if (isInitialLoad) setLoading(true)
+    else setRefreshing(true)
     try {
-      setLoading(true)
-      setBoard(await api.getBoard(slug, search, sort))
+      const result = await api.getBoard(slug, search, sort)
+      if (requestId !== requestSequence.current || revision !== boardRevision.current) return
+      boardRef.current = result
+      loadedSlug.current = slug
+      setBoard(result)
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to load board")
+      if (requestId === requestSequence.current)
+        setMessage(error instanceof Error ? error.message : "Unable to load board")
     } finally {
-      setLoading(false)
+      if (requestId === requestSequence.current) {
+        setLoading(false)
+        setRefreshing(false)
+      }
     }
-  }
+  }, [search, slug, sort])
   useEffect(() => {
-    queueMicrotask(() => {
-      void load()
-    })
+    const debounceMs = search.trim() ? 250 : 0
+    const initialLoad = window.setTimeout(() => void load(), debounceMs)
     const refreshBoard = () => {
-      void load()
+      if (document.visibilityState === "visible") void load()
     }
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load()
+    }, 20_000)
     window.addEventListener("focus", refreshBoard)
-    return () => window.removeEventListener("focus", refreshBoard)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, search, sort])
+    document.addEventListener("visibilitychange", refreshBoard)
+    return () => {
+      window.clearTimeout(initialLoad)
+      window.clearInterval(interval)
+      window.removeEventListener("focus", refreshBoard)
+      document.removeEventListener("visibilitychange", refreshBoard)
+      requestSequence.current += 1
+    }
+  }, [load])
 
   const submitPost = async (event: FormEvent) => {
     event.preventDefault()
@@ -65,6 +90,7 @@ const PublicBoard = () => {
     setSubmitting(true)
     try {
       await api.createPost(slug, title, description, email, meetingRequested)
+      boardRevision.current += 1
       const submittedTitle = title
       setTitle("")
       setDescription("")
@@ -87,7 +113,8 @@ const PublicBoard = () => {
 
   const vote = async (post: Post) => {
     try {
-      const result = await api.vote(post.id)
+      const result = await api.vote(post.id, slug)
+      boardRevision.current += 1
       setBoard((current) =>
         current
           ? {
@@ -153,6 +180,15 @@ const PublicBoard = () => {
           </select>
         </div>
         {message && <p className="mt-4 text-sm text-[#625BF6]">{message}</p>}
+        {refreshing && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-3 inline-flex items-center gap-2 text-xs text-neutral-500"
+          >
+            <LoadingSpinner className="h-3.5 w-3.5" /> Updating the board…
+          </p>
+        )}
         <div className="mt-5 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
           {loading ? (
             <div
@@ -289,8 +325,9 @@ const PublicBoard = () => {
             </div>
             <button
               disabled={submitting}
-              className="mt-5 w-full rounded-xl bg-[#625BF6] px-4 py-3 font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#625BF6] px-4 py-3 font-semibold text-white disabled:cursor-wait disabled:opacity-60"
             >
+              {submitting && <LoadingSpinner className="h-4 w-4" light />}
               {submitting ? "Submitting…" : "Publish idea"}
             </button>
           </form>

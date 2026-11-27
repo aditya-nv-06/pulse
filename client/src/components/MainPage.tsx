@@ -361,7 +361,7 @@ const MainPage = () => {
                 </span>
               </div>
               <div className="my-7 flex items-end gap-1">
-                <span className="text-5xl font-bold tracking-[-0.05em]">$29</span>
+                <span className="text-5xl font-bold tracking-[-0.05em]">₹2,681</span>
                 <span className="pb-1.5 text-sm text-neutral-400">/ month</span>
               </div>
               <div className="mb-7 grid gap-3 text-sm">

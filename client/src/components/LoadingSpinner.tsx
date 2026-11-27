@@ -1,5 +1,3 @@
-import { m, useReducedMotion } from "framer-motion"
-
 const LoadingSpinner = ({
   className = "h-5 w-5",
   light = false,
@@ -7,18 +5,14 @@ const LoadingSpinner = ({
   className?: string
   light?: boolean
 }) => {
-  const reduceMotion = useReducedMotion()
-
   return (
-    <m.span
+    <span
       aria-hidden="true"
-      className={`inline-block shrink-0 rounded-full border-2 ${className}`}
+      className={`inline-block shrink-0 animate-spin rounded-full border-2 motion-reduce:animate-none ${className}`}
       style={{
         borderColor: light ? "rgba(255,255,255,.4)" : "rgba(98,91,246,.25)",
         borderTopColor: light ? "#fff" : "#625BF6",
       }}
-      animate={reduceMotion ? undefined : { rotate: 360 }}
-      transition={{ duration: 0.8, ease: "linear", repeat: Infinity }}
     />
   )
 }

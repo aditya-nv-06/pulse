@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { api, ApiError, type Post, type PostStatus, type Workspace } from "../api"
 import FounderNav from "./FounderNav"
@@ -32,12 +32,15 @@ const PostsDashboard = () => {
   const [page, setPage] = useState(1)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [creatingWorkspace, setCreatingWorkspace] = useState(false)
   const [workspaceName, setWorkspaceName] = useState("")
   const [workspaceSlug, setWorkspaceSlug] = useState("")
+  const postRevision = useRef(0)
 
   const loadWorkspace = async (selected: Workspace) => {
+    postRevision.current += 1
     setWorkspace(selected)
     try {
       const items = await api.getAdminPosts(selected.slug)
@@ -66,6 +69,34 @@ const PostsDashboard = () => {
         .finally(() => setLoading(false))
     })
   }, [navigate])
+
+  useEffect(() => {
+    const slug = workspace?.slug
+    if (!slug) return
+    let active = true
+    const refreshPosts = async () => {
+      if (document.visibilityState !== "visible") return
+      const revision = postRevision.current
+      setRefreshing(true)
+      try {
+        const items = await api.getAdminPosts(slug)
+        if (active && revision === postRevision.current) setPosts(items)
+      } catch {
+        // Keep the current list visible when a background refresh fails.
+      } finally {
+        if (active) setRefreshing(false)
+      }
+    }
+    const interval = window.setInterval(() => void refreshPosts(), 20_000)
+    window.addEventListener("focus", refreshPosts)
+    document.addEventListener("visibilitychange", refreshPosts)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+      window.removeEventListener("focus", refreshPosts)
+      document.removeEventListener("visibilitychange", refreshPosts)
+    }
+  }, [workspace?.slug])
   const switchWorkspace = (slug: string) => {
     const selected = workspaces.find((item) => item.slug === slug)
     if (selected) {
@@ -80,6 +111,7 @@ const PostsDashboard = () => {
     if (!workspace) return
     try {
       const updated = await api.updateStatus(workspace.slug, post.id, status)
+      postRevision.current += 1
       setPosts((items) => items.map((item) => (item.id === updated.id ? updated : item)))
     } catch (statusError) {
       setError(statusError instanceof Error ? statusError.message : "Unable to update status")
@@ -203,6 +235,15 @@ const PostsDashboard = () => {
             </button>
           ))}
         </div>
+        {refreshing && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-4 inline-flex items-center gap-2 text-xs text-neutral-500"
+          >
+            <LoadingSpinner className="h-3.5 w-3.5" /> Syncing new feedback…
+          </p>
+        )}
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
         <div className="mt-5 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
           <div className="divide-y divide-neutral-100">
