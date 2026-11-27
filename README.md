@@ -79,7 +79,7 @@ npm run format:check
 npm run build
 ```
 
-The frontend also has `npm run lint`. GitHub Actions runs formatting checks, frontend lint/build, Prisma Client generation, schema validation, and the API TypeScript build for pushes and pull requests.
+The frontend also has `npm run lint`. GitHub Actions runs formatting checks, frontend lint/build, Prisma Client generation, schema validation, server tests, and the API TypeScript build for pushes and pull requests. CI uses a placeholder database URL only for Prisma tooling and never connects to a database or applies migrations.
 
 ## Database migrations
 

@@ -81,7 +81,7 @@ const PublicBoard = () => {
       document.removeEventListener("visibilitychange", refreshBoard)
       requestSequence.current += 1
     }
-  }, [load])
+  }, [load, search])
 
   const submitPost = async (event: FormEvent) => {
     event.preventDefault()

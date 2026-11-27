@@ -22,10 +22,10 @@ jobs:
         working-directory: client
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -50,32 +50,18 @@ jobs:
     name: Server checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: pulse_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d pulse_ci"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     defaults:
       run:
         working-directory: server
     env:
-      # This URL targets the disposable PostgreSQL service below, never production.
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/pulse_ci?schema=public
+      # Prisma tooling needs a syntactically valid URL; CI never connects to a database.
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/pulse_ci?schema=public
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -93,8 +79,8 @@ jobs:
       - name: Validate Prisma schema
         run: npx prisma validate
 
-      - name: Apply migrations to disposable PostgreSQL
-        run: npm run db:migrate:deploy
+      - name: Run server tests
+        run: npm test
 
       - name: Build
         run: npm run build

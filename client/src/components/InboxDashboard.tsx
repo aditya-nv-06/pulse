@@ -67,12 +67,6 @@ const SuggestionCard = ({
   )
   const resolved = Boolean(suggestion.resolution)
 
-  useEffect(() => {
-    setTitle(suggestion.title)
-    setSummary(suggestion.summary)
-    setPostId(suggestion.matchedPostId ?? "")
-  }, [suggestion.title, suggestion.summary, suggestion.matchedPostId])
-
   return (
     <article className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -558,7 +552,7 @@ const InboxDashboard = () => {
                       <div className="mt-5 space-y-4 border-t border-neutral-100 pt-5">
                         {suggestions.map((suggestion, index) => (
                           <SuggestionCard
-                            key={`${item.id}-${index}`}
+                            key={`${item.id}-${index}-${suggestion.title}-${suggestion.summary}-${suggestion.matchedPostId ?? ""}`}
                             item={item}
                             suggestion={suggestion}
                             index={index}

@@ -17,18 +17,18 @@ const Changelog = () => {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const loadedSlug = useRef<string | null>(null)
+  const [loadedSlug, setLoadedSlug] = useState<string | null>(null)
   const requestSequence = useRef(0)
 
   const load = useCallback(async () => {
     const requestId = ++requestSequence.current
-    const isInitialLoad = loadedSlug.current !== slug
+    const isInitialLoad = loadedSlug !== slug
     if (isInitialLoad) setLoading(true)
     else setRefreshing(true)
     try {
       const board = await api.getChangelog(slug)
       if (requestId !== requestSequence.current) return
-      loadedSlug.current = slug
+      setLoadedSlug(slug)
       setEntries(board.entries)
       setWorkspaceName(board.workspace.name)
       setError("")
@@ -41,7 +41,7 @@ const Changelog = () => {
         setRefreshing(false)
       }
     }
-  }, [slug])
+  }, [loadedSlug, slug])
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void load(), 0)
@@ -62,7 +62,7 @@ const Changelog = () => {
     }
   }, [load])
 
-  if (loading && loadedSlug.current !== slug) return <LoadingState label="Loading release notes…" />
+  if (loading && loadedSlug !== slug) return <LoadingState label="Loading release notes…" />
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-neutral-950">
