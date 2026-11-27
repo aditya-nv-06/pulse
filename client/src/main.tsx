@@ -1,4 +1,4 @@
-import { StrictMode } from "react"
+import { StrictMode, Suspense, lazy } from "react"
 import { createRoot } from "react-dom/client"
 import "./index.css"
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom"
@@ -15,6 +15,9 @@ import AnalyticsDashboard from "./components/AnalyticsDashboard.tsx"
 import ChangelogDashboard from "./components/ChangelogDashboard.tsx"
 import Payment from "./components/Payment.tsx"
 import Blueprint from "./components/Blueprint.tsx"
+import LoadingState from "./components/LoadingState.tsx"
+
+const InboxRoute = lazy(() => import("./components/InboxRoute.tsx"))
 
 const AppRoutes = () => {
   const location = useLocation()
@@ -33,6 +36,14 @@ const AppRoutes = () => {
           <Route path="/" element={<MainPage />} />
           <Route path="/home" element={<Navigate to="/dashboard/posts" replace />} />
           <Route path="/dashboard/posts" element={<PostsDashboard />} />
+          <Route
+            path="/dashboard/:slug/inbox"
+            element={
+              <Suspense fallback={<LoadingState label="Loading inbox…" />}>
+                <InboxRoute />
+              </Suspense>
+            }
+          />
           <Route path="/dashboard/integrations" element={<IntegrationsDashboard />} />
           <Route path="/dashboard/meetings" element={<MeetingsDashboard />} />
           <Route path="/dashboard/analytics" element={<AnalyticsDashboard />} />

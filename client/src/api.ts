@@ -65,6 +65,31 @@ export type PublicChangelog = {
   entries: ChangelogEntry[]
 }
 
+export type InboxSource = "MANUAL" | "PASTE" | "CSV"
+export type InboxStatus = "NEW" | "LINKED" | "CREATED" | "DISCARDED"
+export type InboxSuggestion = {
+  title: string
+  summary: string
+  matchedPostId: string | null
+  confidence: number
+  resolution?: { action: "link" | "create" | "discard"; postId?: string; processedAt: string }
+}
+export type InboxItem = {
+  id: string
+  source: InboxSource
+  rawText: string
+  requesterName: string | null
+  requesterEmail: string | null
+  sourceNote: string | null
+  status: InboxStatus
+  suggestion: { requests: InboxSuggestion[] } | null
+  resultPostId: string | null
+  createdAt: string
+  processedAt: string | null
+}
+export type InboxPage = { items: InboxItem[]; nextCursor: string | null; newCount: number }
+export type InboxPostCandidate = Pick<Post, "id" | "title" | "status" | "votes">
+
 export type BlueprintPlan = {
   name: string
   summary: string
@@ -97,6 +122,9 @@ export type BlueprintResult = {
 
 const apiUrl = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "")
 const apiUnavailableMessage = "We couldn't reach Pulse. Check your connection and try again."
+const notifyInboxUpdated = (slug: string) => {
+  window.dispatchEvent(new Event(`pulse:inbox-updated:${slug}`))
+}
 const pendingGetRequests = new Map<string, Promise<unknown>>()
 const invalidatePendingGets = (...pathPrefixes: string[]) => {
   for (const key of pendingGetRequests.keys()) {
@@ -192,6 +220,66 @@ export const api = {
     request<PublicBoard>(`/public/${slug}?search=${encodeURIComponent(search)}&sort=${sort}`),
   getChangelog: (slug: string) => request<PublicChangelog>(`/public/${slug}/changelog`),
   getAdminPosts: (slug: string) => request<Post[]>(`/workspaces/${slug}/posts`),
+  getInbox: (slug: string, status: "NEW" | "DONE", cursor?: string) => {
+    const query = new URLSearchParams({ status })
+    if (cursor) query.set("cursor", cursor)
+    return request<InboxPage>(`/w/${encodeURIComponent(slug)}/inbox?${query.toString()}`)
+  },
+  getInboxCount: (slug: string) =>
+    request<{ newCount: number }>(`/w/${encodeURIComponent(slug)}/inbox/count`),
+  getInboxPosts: (slug: string) =>
+    request<InboxPostCandidate[]>(`/w/${encodeURIComponent(slug)}/inbox/posts`),
+  createInboxItem: async (
+    slug: string,
+    input: {
+      rawText: string
+      requesterName?: string
+      requesterEmail?: string
+      sourceNote?: string
+      source?: InboxSource
+    },
+  ) => {
+    const item = await request<InboxItem>(`/w/${encodeURIComponent(slug)}/inbox`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    })
+    invalidatePendingGets(`/w/${encodeURIComponent(slug)}/inbox`)
+    notifyInboxUpdated(slug)
+    return item
+  },
+  importInboxItems: async (slug: string, text: string, source: "PASTE" | "CSV") => {
+    const result = await request<{ items: InboxItem[] }>(
+      `/w/${encodeURIComponent(slug)}/inbox/import`,
+      { method: "POST", body: JSON.stringify({ text, source }) },
+    )
+    invalidatePendingGets(`/w/${encodeURIComponent(slug)}/inbox`)
+    notifyInboxUpdated(slug)
+    return result
+  },
+  analyzeInboxItem: async (slug: string, itemId: string) => {
+    const result = await request<{ id: string; suggestion: { requests: InboxSuggestion[] } }>(
+      `/w/${encodeURIComponent(slug)}/inbox/${encodeURIComponent(itemId)}/analyze`,
+      { method: "POST", body: JSON.stringify({}) },
+    )
+    invalidatePendingGets(`/w/${encodeURIComponent(slug)}/inbox`)
+    return result
+  },
+  resolveInboxItem: async (
+    slug: string,
+    itemId: string,
+    input:
+      | { action: "link"; postId: string; suggestionIndex: number }
+      | { action: "create"; title: string; body: string; suggestionIndex: number }
+      | { action: "discard"; suggestionIndex: number },
+  ) => {
+    const result = await request<InboxItem>(
+      `/w/${encodeURIComponent(slug)}/inbox/${encodeURIComponent(itemId)}/resolve`,
+      { method: "POST", body: JSON.stringify(input) },
+    )
+    invalidatePendingGets(`/w/${encodeURIComponent(slug)}/inbox`, `/workspaces/${slug}/posts`)
+    notifyInboxUpdated(slug)
+    return result
+  },
   getAnalytics: (slug: string, days: 7 | 30 | 90) =>
     request<WorkspaceAnalytics>(`/workspaces/${slug}/analytics?days=${days}`),
   getGoogleSheetsSettings: (slug: string) =>

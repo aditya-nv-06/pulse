@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { api, type Workspace } from "../api"
 import CopyBoardLink from "./CopyBoardLink"
@@ -20,7 +21,29 @@ const FounderNav = ({ workspace, workspaces, onWorkspaceChange }: FounderNavProp
   const isIntegrations = location.pathname.includes("integrations")
   const isMeetings = location.pathname.includes("meetings")
   const isAnalytics = location.pathname.includes("analytics")
+  const isInbox = location.pathname.endsWith("/inbox")
   const isPosts = location.pathname.includes("/dashboard/posts")
+  const [inboxCount, setInboxCount] = useState(0)
+  useEffect(() => {
+    let active = true
+    const refreshInboxCount = async () => {
+      try {
+        const result = await api.getInboxCount(workspace.slug)
+        if (active) setInboxCount(result.newCount)
+      } catch {
+        if (active) setInboxCount(0)
+      }
+    }
+    void refreshInboxCount()
+    const interval = window.setInterval(() => void refreshInboxCount(), 30_000)
+    const eventName = `pulse:inbox-updated:${workspace.slug}`
+    window.addEventListener(eventName, refreshInboxCount)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+      window.removeEventListener(eventName, refreshInboxCount)
+    }
+  }, [workspace.slug])
 
   const signOut = async () => {
     if (loggingOut) return
@@ -116,6 +139,19 @@ const FounderNav = ({ workspace, workspaces, onWorkspaceChange }: FounderNavProp
               className={sidebarLinkClass(isAnalytics)}
             >
               <span aria-hidden="true">▥</span>Analytics
+            </Link>
+            <Link
+              to={`/dashboard/${workspace.slug}/inbox`}
+              aria-current={isInbox ? "page" : undefined}
+              className={sidebarLinkClass(isInbox)}
+            >
+              <span aria-hidden="true">▣</span>
+              <span className="min-w-0 flex-1">Inbox</span>
+              {!!inboxCount && (
+                <span className="rounded-full bg-[#625BF6]/10 px-2 py-0.5 text-xs font-bold text-[#625BF6]">
+                  {inboxCount > 99 ? "99+" : inboxCount}
+                </span>
+              )}
             </Link>
           </nav>
           <section
@@ -231,6 +267,13 @@ const FounderNav = ({ workspace, workspaces, onWorkspaceChange }: FounderNavProp
               className={navLinkClass(isAnalytics)}
             >
               Analytics
+            </Link>
+            <Link
+              to={`/dashboard/${workspace.slug}/inbox`}
+              aria-current={isInbox ? "page" : undefined}
+              className={navLinkClass(isInbox)}
+            >
+              Inbox{inboxCount ? ` (${inboxCount > 99 ? "99+" : inboxCount})` : ""}
             </Link>
           </nav>
 
