@@ -49,7 +49,7 @@ publicRouter.get("/:slug", async (request, response) => {
           : {}),
       },
       include: postInclude,
-      orderBy: sort === "new" ? { createdAt: "desc" } : { votes: { _count: "desc" } },
+      orderBy: sort === "new" ? { createdAt: "desc" } : { voteCount: "desc" },
     })
     const changelog = await prisma.changelogEntry.findMany({
       where: { workspaceId: workspace.id },
@@ -194,11 +194,38 @@ publicRouter.post("/posts/:postId/vote", async (request, response) => {
       response.status(400).json({ error: "A voter identity is required" })
       return
     }
-    await prisma.vote.create({ data: { postId: request.params.postId, voterKey } })
-    response
-      .status(201)
-      .json({ votes: await prisma.vote.count({ where: { postId: request.params.postId } }) })
+    const result = await prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw<Array<{ id: string; mergedIntoId: string | null }>>`
+        SELECT "id", "mergedIntoId" FROM "Post"
+        WHERE "id" = ${String(request.params.postId)}
+        FOR UPDATE
+      `
+      const post = await transaction.post.findUnique({
+        where: { id: String(request.params.postId) },
+        select: { id: true, mergedIntoId: true },
+      })
+      if (!post) throw Object.assign(new Error("Post not found"), { statusCode: 404 })
+      if (post.mergedIntoId)
+        throw Object.assign(new Error("This request has been merged into another post"), {
+          statusCode: 409,
+        })
+      await transaction.vote.create({ data: { postId: post.id, voterKey } })
+      return transaction.post.update({
+        where: { id: post.id },
+        data: { voteCount: { increment: 1 } },
+        select: { voteCount: true },
+      })
+    })
+    response.status(201).json({ votes: result.voteCount })
   } catch (error) {
+    if ((error as { statusCode?: number }).statusCode === 404) {
+      response.status(404).json({ error: "Post not found" })
+      return
+    }
+    if ((error as { statusCode?: number }).statusCode === 409) {
+      response.status(409).json({ error: "This request has been merged into another post" })
+      return
+    }
     if ((error as { code?: string }).code === "P2002") {
       response.status(409).json({ error: "You already voted for this post" })
       return

@@ -8,6 +8,7 @@ import { billingRouter } from "./routes/billing.js"
 import { paymentsRouter } from "./routes/payments.js"
 import { blueprintRouter } from "./routes/blueprints.js"
 import { aiRouter } from "./routes/ai.js"
+import { inboxRouter } from "./routes/inbox.js"
 import { prisma } from "./db.js"
 
 export const app = express()
@@ -29,6 +30,7 @@ app.get("/api/health", async (_request, response) => {
 })
 app.use("/api/auth", authRouter)
 app.use("/api/public", publicRouter)
+app.use("/api/w/:slug/inbox", inboxRouter)
 app.use("/api/workspaces", workspaceRouter)
 app.use("/api/billing", billingRouter)
 app.use("/api", paymentsRouter)

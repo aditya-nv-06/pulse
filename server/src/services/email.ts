@@ -7,7 +7,7 @@ type EmailMessage = {
   replyTo?: string
 }
 
-const sendEmail = async ({ to, subject, html, replyTo }: EmailMessage) => {
+export const sendEmail = async ({ to, subject, html, replyTo }: EmailMessage) => {
   if (!config.brevoApiKey) {
     if (config.isProduction) throw new Error("BREVO_API_KEY is not configured")
     return false
@@ -43,6 +43,28 @@ const sendEmail = async ({ to, subject, html, replyTo }: EmailMessage) => {
     throw new Error("Brevo returned success without an email message ID")
   }
   return true
+}
+
+const escapeHtml = (value: string) =>
+  value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ??
+      character,
+  )
+
+export const sendShippedPostNotice = async (message: {
+  to: string
+  requesterName?: string | null
+  postTitle: string
+  workspaceName: string
+}) => {
+  const greeting = message.requesterName ? `Hi ${escapeHtml(message.requesterName)},` : "Hello,"
+  return sendEmail({
+    to: message.to,
+    subject: `Shipped: ${message.postTitle}`,
+    html: `<p>${greeting}</p><p><strong>${escapeHtml(message.postTitle)}</strong> has shipped in ${escapeHtml(message.workspaceName)}.</p><p>Thanks for helping shape the product.</p><p><small>Unsubscribe: email the workspace owner to stop receiving product updates.</small></p>`,
+  })
 }
 
 export const sendMagicLink = async (

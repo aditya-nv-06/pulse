@@ -13,7 +13,7 @@ export const serializePost = (post: PostWithCounts) => ({
   description: post.description,
   status: post.status,
   teamReply: post.teamReply,
-  votes: post._count.votes,
+  votes: post.voteCount,
   author: post.author.name ?? post.author.email.split("@")[0],
   createdAt: post.createdAt,
   updatedAt: post.updatedAt,

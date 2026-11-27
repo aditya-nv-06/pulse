@@ -5,6 +5,9 @@ import { prisma } from "../db.js"
 import { handleError, requireAuth, type AuthRequest } from "../middleware/auth.js"
 import { isPostStatus, postInclude, serializeAdminPost } from "../lib/posts.js"
 import { isGoogleAppsScriptWebhook } from "../services/google-sheets.js"
+import { sendShippedPostNotice } from "../services/email.js"
+import { runInBackground } from "../lib/background.js"
+import { mergePosts, PostMergeError } from "../services/mergePosts.js"
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const googleSheetsSettingsSchema = z.object({
@@ -128,11 +131,14 @@ workspaceRouter.get("/:slug/analytics", async (request: AuthRequest, response) =
       }),
       prisma.post.findMany({
         where: { workspaceId: workspace.id, mergedIntoId: null },
-        orderBy: { votes: { _count: "desc" } },
+        orderBy: { voteCount: "desc" },
         take: 5,
-        select: { id: true, title: true, status: true, _count: { select: { votes: true } } },
+        select: { id: true, title: true, status: true, voteCount: true },
       }),
-      prisma.vote.count({ where: { post: { workspaceId: workspace.id } } }),
+      prisma.post.aggregate({
+        where: { workspaceId: workspace.id, mergedIntoId: null },
+        _sum: { voteCount: true },
+      }),
       prisma.post.findMany({
         where: { workspaceId: workspace.id, status: "SHIPPED", mergedIntoId: null },
         orderBy: [{ shippedAt: "desc" }, { updatedAt: "desc" }],
@@ -142,7 +148,7 @@ workspaceRouter.get("/:slug/analytics", async (request: AuthRequest, response) =
           description: true,
           shippedAt: true,
           updatedAt: true,
-          _count: { select: { votes: true } },
+          voteCount: true,
         },
       }),
     ])
@@ -170,7 +176,7 @@ workspaceRouter.get("/:slug/analytics", async (request: AuthRequest, response) =
       days,
       summary: {
         totalRequests: allPosts.length,
-        totalVotes: allVotes,
+        totalVotes: allVotes._sum.voteCount ?? 0,
         replyRate: allPosts.length
           ? Math.round(
               (allPosts.filter((post) => post.teamReply?.trim()).length / allPosts.length) * 100,
@@ -197,14 +203,14 @@ workspaceRouter.get("/:slug/analytics", async (request: AuthRequest, response) =
         id: post.id,
         title: post.title,
         status: post.status,
-        votes: post._count.votes,
+        votes: post.voteCount,
       })),
       shippedFeatures: shippedFeatures.map((post) => ({
         id: post.id,
         title: post.title,
         description: post.description,
         shippedAt: post.shippedAt ?? post.updatedAt,
-        votes: post._count.votes,
+        votes: post.voteCount,
       })),
     })
   } catch (error) {
@@ -312,15 +318,49 @@ workspaceRouter.patch("/:slug/posts/:postId", async (request: AuthRequest, respo
     const workspace = await prisma.workspace.findFirst({
       where: { slug: String(request.params.slug), ownerId: request.userId! },
     })
-    if (!workspace || !isPostStatus(status)) {
-      response.status(400).json({ error: "Workspace or status is invalid" })
+    if (!workspace) {
+      response.status(404).json({ error: "Workspace not found" })
       return
     }
-    const post = await prisma.post.update({
-      where: { id: String(request.params.postId) },
+    if (!isPostStatus(status)) {
+      response.status(400).json({ error: "Status is invalid" })
+      return
+    }
+    const postId = String(request.params.postId)
+    const changed = await prisma.post.updateMany({
+      where: {
+        id: postId,
+        workspaceId: workspace.id,
+        ...(status === "SHIPPED" ? { status: { not: "SHIPPED" } } : {}),
+      },
       data: { status, shippedAt: status === "SHIPPED" ? new Date() : null },
+    })
+    const post = await prisma.post.findFirst({
+      where: { id: postId, workspaceId: workspace.id },
       include: postInclude,
     })
+    if (!post) {
+      response.status(404).json({ error: "Post not found" })
+      return
+    }
+    if (status === "SHIPPED" && changed.count > 0) {
+      const requesters = await prisma.postRequester.findMany({
+        where: { postId: post.id, post: { workspaceId: workspace.id } },
+        select: { requester: { select: { email: true, name: true } } },
+      })
+      for (const { requester } of requesters) {
+        if (!requester.email) continue
+        runInBackground(
+          sendShippedPostNotice({
+            to: requester.email,
+            requesterName: requester.name,
+            postTitle: post.title,
+            workspaceName: workspace.name,
+          }),
+          "Shipped feedback notification failed",
+        )
+      }
+    }
     response.json(serializeAdminPost(post))
   } catch (error) {
     handleError(error, response)
@@ -337,8 +377,17 @@ workspaceRouter.post("/:slug/posts/:postId/reply", async (request: AuthRequest, 
       response.status(400).json({ error: "Workspace and reply are required" })
       return
     }
+    const postId = String(request.params.postId)
+    const existing = await prisma.post.findFirst({
+      where: { id: postId, workspaceId: workspace.id },
+      select: { id: true },
+    })
+    if (!existing) {
+      response.status(404).json({ error: "Post not found" })
+      return
+    }
     const post = await prisma.post.update({
-      where: { id: String(request.params.postId) },
+      where: { id: existing.id },
       data: { teamReply: reply },
       include: postInclude,
     })
@@ -354,21 +403,24 @@ workspaceRouter.post("/:slug/posts/:postId/merge", async (request: AuthRequest, 
       where: { slug: String(request.params.slug), ownerId: request.userId! },
     })
     const targetId = String(request.body.targetId ?? "")
-    const target =
-      workspace &&
-      (await prisma.post.findFirst({
-        where: { id: targetId, workspaceId: workspace.id, mergedIntoId: null },
-      }))
-    if (!workspace || !target || target.id === String(request.params.postId)) {
+    const sourceId = String(request.params.postId)
+    if (!workspace) {
+      response.status(404).json({ error: "Workspace not found" })
+      return
+    }
+    if (!targetId || targetId === sourceId) {
       response.status(400).json({ error: "Choose another post in this workspace" })
       return
     }
-    await prisma.post.update({
-      where: { id: String(request.params.postId) },
-      data: { mergedIntoId: target.id },
-    })
-    response.json({ merged: true, targetId: target.id })
+    const result = await prisma.$transaction((transaction) =>
+      mergePosts(transaction, { workspaceId: workspace.id, sourceId, targetId }),
+    )
+    response.json(result)
   } catch (error) {
+    if (error instanceof PostMergeError) {
+      response.status(error.status).json({ error: error.message })
+      return
+    }
     handleError(error, response)
   }
 })

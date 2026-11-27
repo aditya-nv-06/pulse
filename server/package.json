@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "test": "vitest run",
     "dev": "tsx watch src/server.ts",
     "start": "node ./dist/src/server.js",
     "cf:types": "wrangler types --config ../wrangler.jsonc src/worker-configuration.d.ts",
@@ -41,6 +42,7 @@
     "prettier": "^3.10.1",
     "prisma": "8.1.0-dev.10",
     "typescript": "^6.0.3",
+    "vitest": "^5.1.2",
     "wrangler": "^4.168.0"
   }
 }
