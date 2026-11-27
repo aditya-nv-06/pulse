@@ -135,10 +135,10 @@ const PublicBoard = () => {
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-neutral-950">
       <PublicBoardNav />
-      <main className="mx-auto max-w-5xl px-6 py-12">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[.14em] text-[#625BF6]">
+            <p className="break-words text-sm font-bold uppercase tracking-[.14em] text-[#625BF6]">
               {board?.workspace.name ?? slug}
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight">What should we build next?</h1>
@@ -257,7 +257,7 @@ const PublicBoard = () => {
         <div className="fixed inset-0 z-10 grid place-items-center bg-neutral-950/30 p-6">
           <form
             onSubmit={submitPost}
-            className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-2xl"
+            className="max-h-[calc(100dvh-3rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-7"
           >
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Suggest a feature</h2>

@@ -140,8 +140,8 @@ const Home = () => {
   const visiblePosts = filter === "ALL" ? posts : posts.filter((post) => post.status === filter)
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-neutral-950">
-      <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-6 py-4">
-        <div>
+      <header className="flex flex-col gap-4 border-b border-neutral-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="min-w-0">
           <p className="inline-flex items-center gap-2 text-lg font-bold">
             <BrandMark />
             Pulse
@@ -164,7 +164,7 @@ const Home = () => {
             Changelog
           </button>
         </nav>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
             onClick={() => navigate(`/board/${workspace.slug}`)}
             className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold"
@@ -176,7 +176,7 @@ const Home = () => {
           </button>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-bold text-[#625BF6]">WORKSPACE / FEATURES</p>

@@ -128,9 +128,9 @@ const ChangelogDashboard = () => {
         workspaces={workspaces}
         onWorkspaceChange={switchWorkspace}
       />
-      <main className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:ml-64 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <main className="mx-auto grid max-w-6xl gap-8 px-4 py-6 sm:gap-10 sm:px-6 sm:py-10 lg:ml-64 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section>
-          <p className="text-sm font-bold text-[#625BF6]">
+          <p className="break-words text-sm font-bold text-[#625BF6]">
             {workspace.name.toUpperCase()} / CHANGELOG
           </p>
           <h1 className="mt-2 text-4xl font-bold tracking-tight">Product updates</h1>
@@ -150,13 +150,13 @@ const ChangelogDashboard = () => {
             {pageItems(entries, page, PAGE_SIZE).map((entry) => (
               <article
                 key={entry.id}
-                className="rounded-2xl border border-neutral-200 bg-white p-6"
+                className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6"
               >
                 <p className="text-xs font-semibold text-neutral-400">
                   {new Date(entry.publishedAt).toLocaleDateString()}
                 </p>
                 <h2 className="mt-3 text-xl font-bold">{entry.title}</h2>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-neutral-500">
+                <p className="mt-3 break-words whitespace-pre-wrap text-sm leading-7 text-neutral-500">
                   {entry.body}
                 </p>
               </article>
@@ -177,7 +177,7 @@ const ChangelogDashboard = () => {
         <aside>
           <form
             onSubmit={publish}
-            className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+            className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6"
           >
             <p className="text-sm font-bold">New changelog entry</p>
             <input

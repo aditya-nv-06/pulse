@@ -77,7 +77,7 @@ const Payment = () => {
           Your free plan includes one workspace. Upgrade to create additional workspaces and keep
           each product feedback loop separate.
         </p>
-        <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl bg-[#FAFAF8] p-5">
+        <div className="mt-8 flex flex-col items-start justify-between gap-3 rounded-2xl bg-[#FAFAF8] p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
           <div>
             <p className="font-bold">Additional workspace</p>
             <p className="mt-1 text-sm text-neutral-500">Secure payment via Razorpay</p>

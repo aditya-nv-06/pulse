@@ -395,7 +395,7 @@ const Blueprint = () => {
               in the same view.
             </p>
           </div>
-          <div className="flex w-max flex-row items-center gap-2 sm:gap-3">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-3 xl:w-max">
             <span className="inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-600">
               <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-[#625BF6]" />
               Public requests sync automatically

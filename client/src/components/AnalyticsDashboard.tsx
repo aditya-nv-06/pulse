@@ -267,7 +267,7 @@ const AnalyticsDashboard = () => {
         workspaces={workspaces}
         onWorkspaceChange={switchWorkspace}
       />
-      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10 lg:ml-64">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10 lg:ml-64">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-bold text-[#625BF6]">
@@ -329,7 +329,7 @@ const AnalyticsDashboard = () => {
               <h2 className="mt-1 text-xl font-bold">Daily activity</h2>
             </div>
             <div
-              className="inline-flex w-fit rounded-xl bg-[#FAFAF8] p-1"
+              className="inline-flex w-fit flex-wrap rounded-xl bg-[#FAFAF8] p-1"
               aria-label="Choose chart metric"
             >
               {(["requests", "votes", "meetingRequests"] as const).map((key) => (
@@ -338,7 +338,7 @@ const AnalyticsDashboard = () => {
                   type="button"
                   aria-pressed={metric === key}
                   onClick={() => setMetric(key)}
-                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${metric === key ? "bg-white text-[#625BF6] shadow-sm" : "text-[#525252] hover:text-[#171717]"}`}
+                  className={`rounded-lg px-2 py-2 text-[11px] font-semibold transition sm:px-3 sm:text-xs ${metric === key ? "bg-white text-[#625BF6] shadow-sm" : "text-[#525252] hover:text-[#171717]"}`}
                 >
                   {metricLabels[key]}
                 </button>

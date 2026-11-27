@@ -194,7 +194,7 @@ const PostsDashboard = () => {
         workspaces={workspaces}
         onWorkspaceChange={switchWorkspace}
       />
-      <main className="mx-auto max-w-6xl px-6 py-10 lg:ml-64">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:ml-64">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-bold text-[#625BF6]">
@@ -250,10 +250,10 @@ const PostsDashboard = () => {
             {pageItems(visiblePosts, page, PAGE_SIZE).map((post) => (
               <article key={post.id} className="p-5">
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-                  <div>
+                  <div className="min-w-0">
                     <Link
                       to={`/dashboard/posts/${post.id}?workspace=${workspace.slug}`}
-                      className="text-lg font-bold hover:text-[#625BF6]"
+                      className="break-words text-lg font-bold hover:text-[#625BF6]"
                     >
                       {post.title}
                     </Link>
@@ -267,7 +267,9 @@ const PostsDashboard = () => {
                         {post.votes} votes · by {post.author}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-neutral-500">{post.description}</p>
+                    <p className="mt-3 break-words text-sm leading-6 text-neutral-500">
+                      {post.description}
+                    </p>
                     {post.meetingRequested && (
                       <p className="mt-3 inline-flex rounded-full bg-[#625BF6]/10 px-3 py-1.5 text-xs font-semibold text-[#625BF6]">
                         Meeting requested
@@ -320,7 +322,7 @@ const PostsDashboard = () => {
           <div
             role="dialog"
             aria-modal="true"
-            className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl"
+            className="max-h-[calc(100dvh-3rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-5 shadow-2xl sm:p-7"
           >
             <div className="flex items-start justify-between">
               <div>

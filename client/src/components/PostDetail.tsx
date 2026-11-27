@@ -116,7 +116,7 @@ const PostDetail = () => {
         workspaces={workspaces}
         onWorkspaceChange={switchWorkspace}
       />
-      <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-10 lg:ml-64">
+      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10 lg:ml-64">
         <Link to="/dashboard/posts" className="text-sm font-semibold text-[#625BF6]">
           ← Back to features
         </Link>
@@ -126,8 +126,8 @@ const PostDetail = () => {
               <p className="text-xs font-bold uppercase tracking-[.14em] text-[#625BF6]">
                 Feature request
               </p>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight">{post.title}</h1>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-neutral-500">
+              <h1 className="mt-3 break-words text-3xl font-bold tracking-tight">{post.title}</h1>
+              <p className="mt-3 break-words whitespace-pre-wrap text-sm leading-7 text-neutral-500">
                 {post.description}
               </p>
             </div>

@@ -192,11 +192,11 @@ const MainPage = () => {
                     <i className="size-2.5 rounded-full bg-neutral-200" />
                     <i className="size-2.5 rounded-full bg-neutral-200" />
                   </div>
-                  <div className="mx-auto rounded-md bg-neutral-100 px-16 py-1 text-[10px] text-neutral-400">
+                  <div className="mx-3 min-w-0 flex-1 truncate rounded-md bg-neutral-100 px-3 py-1 text-center text-[10px] text-neutral-400 sm:mx-auto sm:flex-none sm:px-16">
                     feedback.loopnote.app
                   </div>
                 </div>
-                <div className="grid min-h-[360px] grid-cols-[180px_1fr] sm:grid-cols-[220px_1fr]">
+                <div className="grid min-h-[320px] min-w-0 grid-cols-1 sm:min-h-[360px] sm:grid-cols-[220px_minmax(0,1fr)]">
                   <div className="hidden border-r border-neutral-200 bg-neutral-950 p-5 text-white sm:block">
                     <div className="mb-8 flex items-center gap-2 text-xs font-bold">
                       <span className="size-5 rounded-md bg-[#625BF6]" /> Acme
@@ -209,10 +209,10 @@ const MainPage = () => {
                       <div className="px-3 py-2.5">Roadmap</div>
                     </div>
                   </div>
-                  <div className="p-5 sm:p-8">
-                    <div className="mb-6 flex items-center justify-between">
-                      <div>
-                        <div className="text-lg font-bold">Top feature requests</div>
+                  <div className="min-w-0 p-3 sm:p-8">
+                    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-base font-bold sm:text-lg">Top feature requests</div>
                         <div className="text-xs text-neutral-400">
                           Help shape what we build next.
                         </div>
@@ -239,15 +239,15 @@ const MainPage = () => {
                           initial={reduceMotion ? false : { opacity: 0, x: 14 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.4, delay: 0.55 + index * 0.1 }}
-                          className="flex gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                          className="flex min-w-0 gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:gap-4 sm:p-4"
                           key={title}
                         >
                           <div className="flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-neutral-100 text-[10px] font-bold">
                             <Icon name="up" size={14} />
                             {votes}
                           </div>
-                          <div>
-                            <div className="text-sm font-bold">{title}</div>
+                          <div className="min-w-0">
+                            <div className="break-words text-sm font-bold">{title}</div>
                             <div className="mt-1 text-[11px] text-neutral-400">{text}</div>
                           </div>
                         </m.div>

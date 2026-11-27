@@ -67,7 +67,7 @@ const Changelog = () => {
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-neutral-950">
       <PublicBoardNav />
-      <main className="mx-auto max-w-4xl px-6 py-14">
+      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="max-w-2xl">
           <p className="text-sm font-bold uppercase tracking-[.14em] text-[#625BF6]">
             {workspaceName} / RELEASE NOTES
@@ -101,7 +101,7 @@ const Changelog = () => {
                 <span className="absolute bottom-0 top-0 w-px bg-[#625BF6]/20" />
                 <span className="relative mt-5 size-3 rounded-full border-[3px] border-[#625BF6] bg-[#FAFAF8] ring-4 ring-[#625BF6]/10" />
               </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
                 <p className="text-xs font-semibold text-[#625BF6] sm:hidden">
                   {new Date(entry.publishedAt).toLocaleDateString(undefined, {
                     year: "numeric",
@@ -112,7 +112,7 @@ const Changelog = () => {
                 <h2 className="mt-1 text-xl font-bold tracking-tight sm:mt-0 sm:text-2xl">
                   {entry.title}
                 </h2>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-neutral-500">
+                <p className="mt-3 break-words whitespace-pre-wrap text-sm leading-7 text-neutral-500">
                   {entry.body}
                 </p>
               </div>

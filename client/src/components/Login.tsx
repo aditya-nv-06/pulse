@@ -29,8 +29,8 @@ const Login = () => {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAFAF8] px-6 py-16 text-neutral-950">
-      <div className="mx-auto max-w-md rounded-3xl border border-neutral-200 bg-white p-8 shadow-sm">
+    <main className="min-h-screen bg-[#FAFAF8] px-4 py-8 text-neutral-950 sm:px-6 sm:py-16">
+      <div className="mx-auto max-w-md rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
         <button
           onClick={() => navigate("/")}
           className="inline-flex items-center gap-2 text-lg font-bold"
@@ -38,7 +38,7 @@ const Login = () => {
           <BrandMark />
           Pulse
         </button>
-        <p className="mt-12 text-sm font-bold text-[#625BF6]">WELCOME BACK</p>
+        <p className="mt-8 text-sm font-bold text-[#625BF6] sm:mt-12">WELCOME BACK</p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight">Sign in to your workspace</h1>
         <p className="mt-3 text-sm leading-6 text-neutral-500">
           Enter your email and we’ll send you a secure sign-in link. Open it to start your session.

@@ -180,7 +180,7 @@ const MeetingsDashboard = () => {
         workspaces={workspaces}
         onWorkspaceChange={switchWorkspace}
       />
-      <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10 lg:ml-64">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10 lg:ml-64">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-bold text-[#625BF6]">
@@ -277,7 +277,7 @@ const MeetingsDashboard = () => {
                         <span className="font-semibold">{request.author}</span>
                         <a
                           href={`mailto:${request.authorEmail}`}
-                          className="font-medium text-[#625BF6] hover:underline"
+                          className="break-all font-medium text-[#625BF6] hover:underline"
                         >
                           {request.authorEmail}
                         </a>
